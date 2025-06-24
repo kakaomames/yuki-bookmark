@@ -295,15 +295,6 @@
                     yt-dl
                 </a>
             </p>
-            <p>
-                **使い方:**
-                <ol>
-                    <li>上記の「yt-dl」ボタンを**ブックマークバー**にドラッグ＆ドロップします。</li>
-                    <li>ダウンロードしたいYouTube動画のページを開きます。</li>
-                    <li>ブックマークバーに追加した「yt-dl」をクリックします。</li>
-                    <li>プロンプトが表示されたら、動画のURLを入力し、指示に従ってダウンロードリンクを選択してください。</li>
-                </ol>
-            </p>
         </div>
     </div>
 
@@ -367,8 +358,8 @@
                 relatedVideosOutput.innerHTML = ''; // Clear previous related videos
                 try {
                     // Using `q` for keyword search, `type=video` to ensure only videos are returned
-                    // `maxResults` can be adjusted
-                    const url = `${YOUTUBE_API_BASE_URL}search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=6&key=${YOUTUBE_API_KEY}`;
+                    // Changed maxResults to 50 as requested
+                    const url = `${YOUTUBE_API_BASE_URL}search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=50&key=${YOUTUBE_API_KEY}`;
                     const response = await fetch(url);
                     if (!response.ok) {
                         const errorText = await response.text();

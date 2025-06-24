@@ -1,18 +1,3 @@
-<!--<title>Youtubeダウンローダー</title>
-<h1>
-  YouTube videoダウンローダーへようこそ。
-  <br>
-  <br>
-  このサイトは以下のボタンを押してYouTubeの動画をダウンロードしよう。
-  <br>
-  このページでは、広告なし、待機時間なしでダウンロード可能です。
-  <br>
-  以下のボタンを押せば、新しいタブでダウンロードリンクが開きます。
-  <br>
-  このボタンの下のテキストボックスに、YouTubeのリンクを入力するとこのページでYouTubeの動画を見ることができます
-</h1>
-<h1><a id="yt-dl" href="javascript:(function()%7Bvar%20url=prompt(%22YouTube%E3%81%AEURL%E3%82%92%E5%85%A5%E5%8A%9B%E3%81%97%E3%81%A6%E3%81%8F%E3%81%A0%E3%81%95%E3%81%84:%22);if(url)%7Bvar%20videoId=url.match(/(?:youtube%5C.com%5C/(?:%5B%5E%5C/%5Cn%5Cs%5D+%5C/%5CS+%5C/%7C(?:v%7Ce(?:mbed)?)%5C/%7C%5CS*?%5B?&%5Dv=)%7Cyoutu%5C.be%5C/)(%5Ba-zA-Z0-9_-%5D%7B11%7D)/);if(videoId)%7BvideoId=videoId%5B1%5D;var%20mp4Url1=%60https://inv-ca1-c.nadeko.net/latest_version?id=$%7BvideoId%7D&itag=18%60;var%20mp4Url2=%60https://inv-us2-c.nadeko.net/latest_version?id=$%7BvideoId%7D&itag=18%60;var%20downloadUrl=prompt(%22%E3%81%A9%E3%81%A1%E3%82%89%E3%81%AE%E3%83%AA%E3%83%B3%E3%82%AF%E3%82%92%E4%BD%BF%E7%94%A8%E3%81%97%E3%81%BE%E3%81%99%E3%81%8B%EF%BC%9F%5Cn1:%20inv-ca1-c%5Cn2:%20inv-us2-c%22,%221%22);var%20downloadLink=(downloadUrl===%221%22)?mp4Url1:(downloadUrl===%222%22)?mp4Url2:null;if(downloadLink)%7Bvar%20newTab=window.open(downloadLink,'_blank');newTab.onload=function()%7BsetTimeout(function()%7BnewTab.close();%7D,11000);%7D;%7Delse%7Balert(%22%E7%84%A1%E5%8A%B9%E3%81%AA%E5%85%A5%E5%8A%9B%E3%81%A7%E3%81%99%E3%80%82%22);%7D%7Delse%7Balert(%22YouTube%E3%81%AE%E3%83%AA%E3%83%B3%E3%82%AF%E3%81%8B%E3%82%89%E5%8B%95%E7%94%BBID%E3%82%92%E6%8A%BD%E5%87%BA%E3%81%A7%E3%81%8D%E3%81%BE%E3%81%9B%E3%82%93%E3%81%A7%E3%81%97%E3%81%9F%E3%80%82%22);%7D%7Delse%7Balert(%22URL%E3%81%8C%E5%85%A5%E5%8A%9B%E3%81%95%E3%82%8C%E3%81%BE%E3%81%9B%E3%82%93%E3%81%A7%E3%81%97%E3%81%9F%E3%80%82%22);%7D%7D)();"> yt-dl</a></h1>
--->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -179,10 +164,12 @@
         <button id="processButton">動画を表示</button>
 
         <div id="output">
-            </div>
+            <!-- ここにメッセージが表示されます -->
+        </div>
 
         <div id="videoContainer">
-            </div>
+            <!-- ここに動画プレイヤーが埋め込まれます -->
+        </div>
 
         <hr>
 
@@ -193,11 +180,11 @@
                 <br>ダウンロードしたいYouTube動画のページで、このブックマークをクリックすると、ダウンロードリンクが表示されます。
             </p>
             <p style="text-align: center;">
-                <a class="bookmarklet-button" href="javascript:(function(){var url=prompt('YouTubeのURLを入力してください:');if(url){var videoId=url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);if(videoId){videoId=videoId[1];var mp4Url1=`https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var mp4Url2=`https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var downloadUrl=prompt('どちらのリンクを使用しますか？\n1: inv-ca1-c\n2: inv-us2-c','1');var downloadLink=(downloadUrl==='1')?mp4Url1:(downloadUrl==='2')?mp4Url2:null;if(downloadLink){var newTab=window.open(downloadLink,'_blank');newTab.onload=function(){setTimeout(function(){newTab.close();},11000);};}else{alert('無効な入力です。');}}else{alert('YouTubeのリンクから動画IDを抽出できませんでした。');}}else{alert('URLが入力されませんでした。');}})();">
+                <a id="yt-dl" class="bookmarklet-button" href="javascript:(function(){var url=prompt('YouTubeのURLを入力してください:');if(url){var videoId=url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);if(videoId){videoId=videoId[1];var mp4Url1=`https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var mp4Url2=`https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var downloadUrl=prompt('どちらのリンクを使用しますか？\n1: inv-ca1-c\n2: inv-us2-c','1');var downloadLink=(downloadUrl==='1')?mp4Url1:(downloadUrl==='2')?mp4Url2:null;if(downloadLink){var newTab=window.open(downloadLink,'_blank');newTab.onload=function(){setTimeout(function(){newTab.close();},11000);};}else{alert('無効な入力です。');}}else{alert('YouTubeのリンクから動画IDを抽出できませんでした。');}}else{alert('URLが入力されませんでした。');}})();">
                     yt-dl
                 </a>
             </p>
-           <!-- <p>
+            <p>
                 **使い方:**
                 <ol>
                     <li>上記の「yt-dl」ボタンを**ブックマークバー**にドラッグ＆ドロップします。</li>
@@ -205,7 +192,7 @@
                     <li>ブックマークバーに追加した「yt-dl」をクリックします。</li>
                     <li>プロンプトが表示されたら、動画のURLを入力し、指示に従ってダウンロードリンクを選択してください。</li>
                 </ol>
-            </p>-->
+            </p>
         </div>
     </div>
 
@@ -217,19 +204,24 @@
             const outputDiv = document.getElementById('output');
             const videoContainer = document.getElementById('videoContainer');
 
+            // Function to display messages (replaces alert for better UX)
+            function showMessage(element, message, color = 'red') {
+                element.innerHTML = `<p style="color: ${color};">${message}</p>`;
+            }
+
             processButton.addEventListener('click', async () => {
                 const url = youtubeLinkInput.value.trim();
                 const displayType = displayTypeSelect.value;
 
-                outputDiv.innerHTML = ''; // 出力エリアをクリア
-                videoContainer.innerHTML = ''; // 動画コンテナをクリア
+                outputDiv.innerHTML = ''; // Clear output area
+                videoContainer.innerHTML = ''; // Clear video container
 
                 if (!url) {
-                    outputDiv.innerHTML = '<p style="color: red;">YouTubeのURLを入力してください。</p>';
+                    showMessage(outputDiv, 'YouTubeのURLを入力してください。');
                     return;
                 }
 
-                // YouTube動画IDを抽出
+                // Extract YouTube video ID
                 let videoId = '';
                 const regExp = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
                 const match = url.match(regExp);
@@ -238,13 +230,12 @@
                 }
 
                 if (!videoId) {
-                    outputDiv.innerHTML = '<p style="color: red;">無効なYouTubeのURLです。動画IDを抽出できませんでした。</p>';
+                    showMessage(outputDiv, '無効なYouTubeのURLです。動画IDを抽出できませんでした。');
                     return;
                 }
 
                 if (displayType === 'embed') {
-                    // YouTube公式埋め込みの場合
-                    // ここで以前リクエストされたconfig.jsonからのパラメータを使用します
+                    // For YouTube official embed
                     const configUrl = 'https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json';
                     
                     try {
@@ -253,32 +244,48 @@
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         const data = await response.json();
-                        const params = data.params || ''; // paramsがない場合を考慮
+                        let paramsString = data.params || ''; // params string from config.json
 
-                        // YouTube埋め込みのURLを生成
-                        const embedSrc = `http://www.youtubeeducation.com/embed/${videoId}${params}`;
+                        // --- Parameter Correction and Encoding ---
+                        // 1. Replace HTML entities like &amp; with &
+                        paramsString = paramsString.replace(/&amp;/g, '&');
+
+                        // 2. Remove leading '?' if present, then parse into URLSearchParams
+                        if (paramsString.startsWith('?')) {
+                            paramsString = paramsString.substring(1);
+                        }
+                        const tempParams = new URLSearchParams(paramsString);
+
+                        // 3. Rebuild parameters ensuring correct encoding for all values
+                        const finalParams = new URLSearchParams();
+                        for (const [key, value] of tempParams.entries()) {
+                            // Decode value first to handle any pre-existing encoding issues in config.json,
+                            // then let URLSearchParams encode it correctly when building the new string.
+                            finalParams.set(key, decodeURIComponent(value));
+                        }
+                        
+                        // Convert back to string with '?' if parameters exist
+                        const finalParamsString = finalParams.toString() ? `?${finalParams.toString()}` : '';
+
+                        // Generate YouTube embed URL using youtubeeducation.com and the processed parameters
+                        const embedSrc = `https://www.youtubeeducation.com/embed/${videoId}${finalParamsString}`;
                         const iframeCode = `<iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
                         
                         videoContainer.innerHTML = iframeCode;
-                        outputDiv.innerHTML = '<p>YouTube動画が埋め込まれました。</p>';
+                        showMessage(outputDiv, 'YouTube動画が埋め込まれました。', 'green');
 
                     } catch (error) {
-                        console.error('設定ファイルの取得中にエラーが発生しました:', error);
-                        outputDiv.innerHTML = '<p style="color: orange;">埋め込みパラメータの取得に失敗しました。デフォルトの埋め込みを試みます。</p>';
-                        // エラー時でも最低限の埋め込みを試みる
-                      if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        const data = await response.json();
-                        const params = data.params || ''; // paramsがない場合を考慮
-                        const defaultEmbedSrc = `http://www.youtubeeducation.com/embed/${videoId}${params}`;
+                        console.error('設定ファイルの取得または処理中にエラーが発生しました:', error);
+                        showMessage(outputDiv, '埋め込みパラメータの取得または処理に失敗しました。デフォルトの埋め込みを試みます。', 'orange');
+                        // Try default embed on error (using https and youtubeeducation.com)
+                        const defaultEmbedSrc = `https://www.youtubeeducation.com/embed/${videoId}`;
                         const defaultIframeCode = `<iframe src="${defaultEmbedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
                         videoContainer.innerHTML = defaultIframeCode;
                     }
 
                 } else if (displayType === 'videoTag') {
-                    // Videoタグ (Inv.io経由) の場合
-                    // 注意: Inv.ioのようなサービスも安定性は保証されません
+                    // For Video tag (via Inv.io)
+                    // Note: Services like Inv.io are not guaranteed to be stable
                     const videoTagCode = `<video id="player" controls="" width="100%" height="100%">
     お使いのブラウザは video タグをサポートしていません。
   <source src="https://inv-us4-c.nadeko.net/latest_version?id=${videoId}&itag=18&check=" type="video/mp4">
@@ -287,7 +294,7 @@
   <source src="https://inv-eu3-c.nadeko.net/latest_version?id=${videoId}&itag=18&check=" type="video/mp4">
 </video>`;
                     videoContainer.innerHTML = videoTagCode;
-                    outputDiv.innerHTML = '<p>Videoタグで動画が表示されました。</p>';
+                    showMessage(outputDiv, 'Videoタグで動画が表示されました。', 'green');
                 }
             });
         });

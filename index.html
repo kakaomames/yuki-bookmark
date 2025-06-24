@@ -193,9 +193,9 @@
                 <br>ダウンロードしたいYouTube動画のページで、このブックマークをクリックすると、ダウンロードリンクが表示されます。
             </p>
             <p style="text-align: center;">
-                <button class="bookmarklet-button" href="javascript:(function(){var url=prompt('YouTubeのURLを入力してください:');if(url){var videoId=url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);if(videoId){videoId=videoId[1];var mp4Url1=`https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var mp4Url2=`https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var downloadUrl=prompt('どちらのリンクを使用しますか？\n1: inv-ca1-c\n2: inv-us2-c','1');var downloadLink=(downloadUrl==='1')?mp4Url1:(downloadUrl==='2')?mp4Url2:null;if(downloadLink){var newTab=window.open(downloadLink,'_blank');newTab.onload=function(){setTimeout(function(){newTab.close();},11000);};}else{alert('無効な入力です。');}}else{alert('YouTubeのリンクから動画IDを抽出できませんでした。');}}else{alert('URLが入力されませんでした。');}})();">
+                <a class="bookmarklet-button" href="javascript:(function(){var url=prompt('YouTubeのURLを入力してください:');if(url){var videoId=url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);if(videoId){videoId=videoId[1];var mp4Url1=`https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var mp4Url2=`https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var downloadUrl=prompt('どちらのリンクを使用しますか？\n1: inv-ca1-c\n2: inv-us2-c','1');var downloadLink=(downloadUrl==='1')?mp4Url1:(downloadUrl==='2')?mp4Url2:null;if(downloadLink){var newTab=window.open(downloadLink,'_blank');newTab.onload=function(){setTimeout(function(){newTab.close();},11000);};}else{alert('無効な入力です。');}}else{alert('YouTubeのリンクから動画IDを抽出できませんでした。');}}else{alert('URLが入力されませんでした。');}})();">
                     yt-dl
-                </button>
+                </a>
             </p>
            <!-- <p>
                 **使い方:**

@@ -139,6 +139,102 @@
         .bookmarklet-button:hover {
             background-color: #218838;
         }
+
+        /* Styles for new YouTube API features */
+        .api-feature-section {
+            background-color: #fcf8e3; /* Light yellow background for this section */
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-top: 30px;
+            border: 1px solid #faebcc;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .api-feature-section h2 {
+            color: #8a6d3b; /* Dark yellow/brown for heading */
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .video-details-output, .related-videos-output {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fffde7;
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            min-height: 50px;
+            font-size: 0.95em;
+            text-align: left;
+        }
+        .related-videos-output ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .related-videos-output li {
+            background-color: #ffffff;
+            border: 1px solid #ffe0b3;
+            border-radius: 8px;
+            padding: 10px;
+            width: calc(33% - 20px); /* Approx 3 items per row, considering gap */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+            box-sizing: border-box;
+            transition: transform 0.2s ease;
+        }
+        .related-videos-output li:hover {
+            transform: translateY(-3px);
+        }
+        .related-videos-output li a {
+            text-decoration: none;
+            color: #333;
+            display: block; /* Make the whole li clickable */
+        }
+        .related-videos-output li img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .related-videos-output li h4 {
+            font-size: 0.9em;
+            margin: 0;
+            color: #444;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit title to 2 lines */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #8a6d3b; /* Spinner color matching section theme */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .related-videos-output li {
+                width: calc(50% - 20px); /* 2 items per row on tablets */
+            }
+        }
+        @media (max-width: 480px) {
+            .related-videos-output li {
+                width: calc(100% - 20px); /* 1 item per row on mobile */
+            }
+        }
     </style>
 </head>
 <body>
@@ -173,16 +269,40 @@
 
         <hr>
 
+        <!-- YouTube API Feature Section -->
+        <div class="api-feature-section">
+            <h2>動画情報と関連動画</h2>
+            <div class="loading-spinner" id="videoDetailsSpinner"></div>
+            <div id="videoTitleOutput" class="video-details-output">
+                <!-- 動画タイトルがここに表示されます -->
+            </div>
+            <div id="relatedVideosOutput" class="related-videos-output">
+                <!-- 関連動画がここに表示されます -->
+                <p style="text-align: center; color: #777;">動画が読み込まれると、関連動画が表示されます。</p>
+            </div>
+        </div>
+
+        <hr>
+
         <div class="bookmarklet-info">
             <h2>YouTube動画ダウンロード用ブックマークレット</h2>
             <p>
-                動画をダウンロードするには、以下の「<h2>yt-dl</h2>」ボタンをブラウザのブックマークバーにドラッグ＆ドロップしてください。
+                動画をダウンロードするには、以下の「**yt-dl**」ボタンをブラウザのブックマークバーにドラッグ＆ドロップしてください。
                 <br>ダウンロードしたいYouTube動画のページで、このブックマークをクリックすると、ダウンロードリンクが表示されます。
             </p>
             <p style="text-align: center;">
                 <a id="yt-dl" class="bookmarklet-button" href="javascript:(function(){var url=prompt('YouTubeのURLを入力してください:');if(url){var videoId=url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);if(videoId){videoId=videoId[1];var mp4Url1=`https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var mp4Url2=`https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var downloadUrl=prompt('どちらのリンクを使用しますか？\n1: inv-ca1-c\n2: inv-us2-c','1');var downloadLink=(downloadUrl==='1')?mp4Url1:(downloadUrl==='2')?mp4Url2:null;if(downloadLink){var newTab=window.open(downloadLink,'_blank');newTab.onload=function(){setTimeout(function(){newTab.close();},11000);};}else{alert('無効な入力です。');}}else{alert('YouTubeのリンクから動画IDを抽出できませんでした。');}}else{alert('URLが入力されませんでした。');}})();">
                     yt-dl
                 </a>
+            </p>
+            <p>
+                **使い方:**
+                <ol>
+                    <li>上記の「yt-dl」ボタンを**ブックマークバー**にドラッグ＆ドロップします。</li>
+                    <li>ダウンロードしたいYouTube動画のページを開きます。</li>
+                    <li>ブックマークバーに追加した「yt-dl」をクリックします。</li>
+                    <li>プロンプトが表示されたら、動画のURLを入力し、指示に従ってダウンロードリンクを選択してください。</li>
+                </ol>
             </p>
         </div>
     </div>
@@ -194,11 +314,99 @@
             const processButton = document.getElementById('processButton');
             const outputDiv = document.getElementById('output');
             const videoContainer = document.getElementById('videoContainer');
+            
+            // New elements for YouTube API features
+            const videoDetailsSpinner = document.getElementById('videoDetailsSpinner');
+            const videoTitleOutput = document.getElementById('videoTitleOutput');
+            const relatedVideosOutput = document.getElementById('relatedVideosOutput');
+
+            // Your provided YouTube Data API Key
+            const YOUTUBE_API_KEY = 'AIzaSyBRNyOckOQiL7kD9MU8cnuzT72bIvT0WIU';
+            const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3/';
 
             // Function to display messages (replaces alert for better UX)
             function showMessage(element, message, color = 'red') {
                 element.innerHTML = `<p style="color: ${color};">${message}</p>`;
             }
+
+            // Function to fetch video details (title)
+            async function fetchVideoDetails(videoId) {
+                videoDetailsSpinner.style.display = 'block'; // Show spinner
+                videoTitleOutput.innerHTML = ''; // Clear previous title
+                relatedVideosOutput.innerHTML = ''; // Clear previous related videos
+                showMessage(relatedVideosOutput, '関連動画を読み込み中...', '#777'); // Initial message for related videos
+
+                try {
+                    const url = `${YOUTUBE_API_BASE_URL}videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`YouTube API Error: ${response.status} - ${errorText}`);
+                    }
+                    const data = await response.json();
+
+                    if (data.items && data.items.length > 0) {
+                        const videoTitle = data.items[0].snippet.title;
+                        videoTitleOutput.innerHTML = `<h3>動画タイトル: <br>${videoTitle}</h3>`;
+                        await fetchRelatedVideos(videoTitle); // Fetch related videos using the title
+                    } else {
+                        showMessage(videoTitleOutput, '動画のタイトルが見つかりませんでした。', 'orange');
+                        showMessage(relatedVideosOutput, '関連動画が見つかりませんでした。', 'orange');
+                    }
+                } catch (error) {
+                    console.error('動画詳細の取得中にエラーが発生しました:', error);
+                    showMessage(videoTitleOutput, `動画タイトル取得エラー: ${error.message}`, 'red');
+                    showMessage(relatedVideosOutput, `関連動画取得エラー: ${error.message}`, 'red');
+                } finally {
+                    videoDetailsSpinner.style.display = 'none'; // Hide spinner
+                }
+            }
+
+            // Function to fetch related videos based on a query (video title)
+            async function fetchRelatedVideos(query) {
+                relatedVideosOutput.innerHTML = ''; // Clear previous related videos
+                try {
+                    // Using `q` for keyword search, `type=video` to ensure only videos are returned
+                    // `maxResults` can be adjusted
+                    const url = `${YOUTUBE_API_BASE_URL}search?part=snippet&q=${encodeURIComponent(query)}&type=video&maxResults=6&key=${YOUTUBE_API_KEY}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`YouTube API Error: ${response.status} - ${errorText}`);
+                    }
+                    const data = await response.json();
+
+                    if (data.items && data.items.length > 0) {
+                        const ul = document.createElement('ul');
+                        data.items.forEach(item => {
+                            // Ensure it's a video item (sometimes search can return channels/playlists)
+                            if (item.id.kind === 'youtube#video') {
+                                const li = document.createElement('li');
+                                const videoLink = `https://www.youtube.com/watch?v=${item.id.videoId}`;
+                                
+                                li.innerHTML = `
+                                    <a href="${videoLink}" target="_blank">
+                                        <img src="${item.snippet.thumbnails.medium.url}" alt="${item.snippet.title}">
+                                        <h4>${item.snippet.title}</h4>
+                                    </a>
+                                `;
+                                ul.appendChild(li);
+                            }
+                        });
+                        if (ul.children.length > 0) {
+                            relatedVideosOutput.appendChild(ul);
+                        } else {
+                            showMessage(relatedVideosOutput, '関連動画が見つかりませんでした。', 'orange');
+                        }
+                    } else {
+                        showMessage(relatedVideosOutput, '関連動画が見つかりませんでした。', 'orange');
+                    }
+                } catch (error) {
+                    console.error('関連動画の取得中にエラーが発生しました:', error);
+                    showMessage(relatedVideosOutput, `関連動画取得エラー: ${error.message}`, 'red');
+                }
+            }
+
 
             processButton.addEventListener('click', async () => {
                 const url = youtubeLinkInput.value.trim();
@@ -206,6 +414,10 @@
 
                 outputDiv.innerHTML = ''; // Clear output area
                 videoContainer.innerHTML = ''; // Clear video container
+                videoTitleOutput.innerHTML = ''; // Clear video title output
+                relatedVideosOutput.innerHTML = ''; // Clear related videos output
+                showMessage(relatedVideosOutput, '関連動画を読み込み中...', '#777'); // Reset related videos message
+
 
                 if (!url) {
                     showMessage(outputDiv, 'YouTubeのURLを入力してください。');
@@ -224,6 +436,10 @@
                     showMessage(outputDiv, '無効なYouTubeのURLです。動画IDを抽出できませんでした。');
                     return;
                 }
+
+                // Call YouTube Data API to get video details and related videos
+                await fetchVideoDetails(videoId);
+
 
                 if (displayType === 'embed') {
                     // For YouTube official embed

@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTubeダウンローダー & ビデオプレイヤー</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            margin-bottom: 30px;
+            box-sizing: border-box;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            font-size: 2em;
+            margin-bottom: 25px;
+            line-height: 1.4;
+        }
+        p {
+            text-align: center;
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            color: #555;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #444;
+        }
+        input[type="text"], select {
+            width: calc(100% - 20px); /* Adjust for padding */
+            padding: 12px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, select:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        #output {
+            margin-top: 30px;
+            padding: 20px;
+            border: 1px dashed #a7d9ff;
+            background-color: #e6f7ff;
+            border-radius: 8px;
+            min-height: 80px;
+            text-align: center;
+            word-break: break-all;
+        }
+        #videoContainer {
+            margin-top: 30px;
+            width: 100%;
+            max-width: 640px; /* YouTubeの標準的な幅に合わせる */
+            aspect-ratio: 16 / 9; /* 16:9のアスペクト比を維持 */
+            position: relative;
+            background-color: #000; /* 動画が読み込まれるまでの背景 */
+            border-radius: 8px;
+            overflow: hidden; /* 角丸を適用 */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        }
+        #videoContainer iframe, #videoContainer video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none; /* iframeのデフォルトボーダーを削除 */
+        }
+        .bookmarklet-info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            color: #155724;
+            font-size: 0.95em;
+            text-align: left;
+        }
+        .bookmarklet-info code {
+            background-color: #e2f2e5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+        .bookmarklet-button {
+            display: inline-block; /* ボタンとして機能させるためにブロックレベルに */
+            background-color: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .bookmarklet-button:hover {
+            background-color: #218838;
+        }
+
+        /* Styles for new YouTube API features */
+        .api-feature-section {
+            background-color: #fcf8e3; /* Light yellow background for this section */
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-top: 30px;
+            border: 1px solid #faebcc;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .api-feature-section h2 {
+            color: #8a6d3b; /* Dark yellow/brown for heading */
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .video-details-output, .related-videos-output {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #fffde7;
+            border: 1px solid #ffeeba;
+            border-radius: 8px;
+            min-height: 50px;
+            font-size: 0.95em;
+            text-align: left;
+        }
+        .related-videos-output ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+        .related-videos-output li {
+            background-color: #ffffff;
+            border: 1px solid #ffe0b3;
+            border-radius: 8px;
+            padding: 10px;
+            width: calc(33% - 20px); /* Approx 3 items per row, considering gap */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            text-align: center;
+            box-sizing: border-box;
+            transition: transform 0.2s ease;
+            position: relative; /* For type indicator */
+        }
+        .related-videos-output li:hover {
+            transform: translateY(-3px);
+        }
+        .related-videos-output li a {
+            text-decoration: none;
+            color: #333;
+            display: block; /* Make the whole li clickable */
+        }
+        .related-videos-output li img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .related-videos-output li h4 {
+            font-size: 0.9em;
+            margin: 0;
+            color: #444;
+            display: -webkit-box;
+            -webkit-line-clamp: 2; /* Limit title to 2 lines */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #8a6d3b; /* Spinner color matching section theme */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .related-videos-output li {
+                width: calc(50% - 20px); /* 2 items per row on tablets */
+            }
+        }
+        @media (max-width: 480px) {
+            .related-videos-output li {
+                width: calc(100% - 20px); /* 1 item per row on mobile */
+            }
+        }
+
+        /* Specific styles for different content types */
+        .related-videos-output li.channel-item {
+            background-color: #e0f2f7; /* Light blue for channels */
+            border-color: #b2ebf2;
+        }
+        .related-videos-output li.playlist-item {
+            background-color: #e8f5e9; /* Light green for playlists */
+            border-color: #c8e6c9;
+        }
+        .type-indicator {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(0,0,0,0.6);
+            color: white;
+            font-size: 0.7em;
+            padding: 3px 6px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Videoダウンローダー＆プレイヤー</h1>
+        <p>
+            このページではYouTube動画の視聴ができます。ダウンロードは、以下のボタンから**ブックマークレット**をご利用ください。広告なし、待機時間なしで動画を視聴可能です。
+        </p>
+
+        <div class="form-group">
+            <label for="youtubeLink">YouTube動画・チャンネル・再生リストのURLまたは検索クエリを入力してください:</label>
+            <input type="text" id="youtubeLink" placeholder="例: https://www.youtube.com/watch?v=dQw4w9WgXcQ, https://ssyoutube.com/6, https://ssyoutube.com/7, 音楽, 猫チャンネル">
+        </div>
+
+        <div class="form-group">
+            <label for="displayType">表示タイプを選択:</label>
+            <select id="displayType">
+                <option value="embed">YouTube公式埋め込み (推奨)</option>
+                <option value="videoTag">Videoタグ (Inv.io経由)</option>
+            </select>
+            <p id="liveWarning" style="color: orange; font-size: 0.9em; margin-top: 5px; display: none;">
+                ※ライブストリームのため、ビデオタグでの再生はできません。
+            </p>
+        </div>
+
+        <button id="processButton">動画を表示 / 検索</button>
+
+        <div id="output">
+            </div>
+
+        <div id="videoContainer">
+            </div>
+
+        <hr>
+
+        <div class="api-feature-section">
+            <h2>動画情報と関連動画/検索結果</h2>
+            <div class="loading-spinner" id="videoDetailsSpinner"></div>
+            <div id="videoTitleOutput" class="video-details-output">
+                </div>
+            <div id="relatedVideosOutput" class="related-videos-output">
+                <p style="text-align: center; color: #777;">動画URLを入力すると関連動画が、キーワードを入力すると検索結果が表示されます。</p>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="bookmarklet-info">
+            <h2>YouTube動画ダウンロード用ブックマークレット</h2>
+            <p>
+                動画をダウンロードするには、以下の「**yt-dl**」ボタンをブラウザのブックマークバーにドラッグ＆ドロップしてください。
+                <br>ダウンロードしたいYouTube動画のページで、このブックマークをクリックすると、ダウンロードリンクが表示されます。
+            </p>
+            <p style="text-align: center;">
+                <a id="yt-dl" class="bookmarklet-button" href="javascript:(function(){var url=prompt('YouTubeのURLを入力してください:');if(url){var videoId=url.match(/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);if(videoId){videoId=videoId[1];var mp4Url1=`https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var mp4Url2=`https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18`;var downloadUrl=prompt('どちらのリンクを使用しますか？\n1: inv-ca1-c\n2: inv-us2-c','1');var downloadLink=(downloadUrl==='1')?mp4Url1:(downloadUrl==='2')?mp4Url2:null;if(downloadLink){var newTab=window.open(downloadLink,'_blank');newTab.onload=function(){setTimeout(function(){newTab.close();},11000);};}else{alert('無効な入力です。');}}else{alert('YouTubeのリンクから動画IDを抽出できませんでした。');}}else{alert('URLが入力されませんでした。');}})();">
+                    yt-dl
+                </a>
+            </p>
+            <p>
+                **使い方:**
+                <ol>
+                    <li>上記の「yt-dl」ボタンを**ブックマークバー**にドラッグ＆ドロップします。</li>
+                    <li>ダウンロードしたいYouTube動画のページを開きます。</li>
+                    <li>ブックマークバーに追加した「yt-dl」をクリックします。</li>
+                    <li>プロンプトが表示されたら、動画のURLを入力し、指示に従ってダウンロードリンクを選択してください。</li>
+                </ol>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const youtubeLinkInput = document.getElementById('youtubeLink');
+            const displayTypeSelect = document.getElementById('displayType');
+            const processButton = document.getElementById('processButton');
+            const outputDiv = document.getElementById('output');
+            const videoContainer = document.getElementById('videoContainer');
+            const liveWarning = document.getElementById('liveWarning'); // Live warning message element
+            
+            // YouTube API features elements
+            const videoDetailsSpinner = document.getElementById('videoDetailsSpinner');
+            const videoTitleOutput = document.getElementById('videoTitleOutput');
+            const relatedVideosOutput = document.getElementById('relatedVideosOutput');
+
+            // Your provided YouTube Data API Key
+            const YOUTUBE_API_KEY = 'AIzaSyBRNyOckOQiL7kD9MU8cnuzT72bIvT0WIU';
+            const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3/';
+
+            // Function to display messages (replaces alert for better UX)
+            function showMessage(element, message, color = 'red') {
+                element.innerHTML = `<p style="color: ${color};">${message}</p>`;
+            }
+
+            // Function to extract video ID from various URL formats
+            function extractVideoId(url) {
+                let videoId = '';
+                // Updated regex to include various YouTube domains and paths (http/https agnostic)
+                const regExp = /(?:https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be|youtubeeducation\.com)\/(?:(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=))|https?:\/\/youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+                const match = url.match(regExp);
+                if (match) {
+                    videoId = match[1];
+                }
+                return videoId;
+            }
+
+            // Function to extract channel ID from various URL formats
+            function extractChannelId(url) {
+                let channelId = '';
+                // Regex for channel URLs (UC prefix typically indicates a channel ID)
+                const regExp = /(?:https?:\/\/(?:www\.|m\.)?youtube\.com\/(?:channel\/|c\/|user\/))([a-zA-Z0-9_-]+)/;
+                const match = url.match(regExp);
+                if (match && match[1].startsWith('UC')) { // Ensure it's a proper channel ID
+                    channelId = match[1];
+                }
+                return channelId;
+            }
+
+            // Function to extract playlist ID from various URL formats
+            function extractPlaylistId(url) {
+                let playlistId = '';
+                const regExp = /(?:https?:\/\/(?:www\.|m\.)?youtube\.com\/playlist\?list=)([a-zA-Z0-9_-]+)/;
+                const match = url.match(regExp);
+                if (match) {
+                    playlistId = match[1];
+                }
+                return playlistId;
+            }
+
+            // Function to check if a URL is a YouTube video URL
+            function isYouTubeVideoUrl(url) {
+                return /(?:https?:\/\/(?:www\.|m\.)?(?:youtube\.com|youtu\.be|youtubeeducation\.com)\/(?:(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=))|https?:\/\/youtu\.be\/)([a-zA-Z0-9_-]{11})/.test(url);
+            }
+
+            // Function to check if a URL is a YouTube channel URL
+            function isYouTubeChannelUrl(url) {
+                 return /(?:https?:\/\/(?:www\.|m\.)?youtube\.com\/(?:channel\/|c\/|user\/))([a-zA-Z0-9_-]+)/.test(url);
+            }
+
+            // Function to check if a URL is a YouTube playlist URL
+            function isYouTubePlaylistUrl(url) {
+                return /(?:https?:\/\/(?:www\.|m\.)?youtube\.com\/playlist\?list=)([a-zA-Z0-9_-]+)/.test(url);
+            }
+
+
+            // Function to render search results (videos, shorts, channels, playlists)
+            function renderSearchResults(items, targetElement, currentPlayingVideoId = null) {
+                targetElement.innerHTML = ''; // Clear previous results
+                if (!items || items.length === 0) {
+                    showMessage(targetElement, '結果が見つかりませんでした。', 'orange');
+                    return;
+                }
+
+                const ul = document.createElement('ul');
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    let linkHref = '#';
+                    let title = item.snippet.title;
+                    let thumbnailUrl = item.snippet.thumbnails.medium.url;
+                    let itemType = ''; 
+                    let typeIndicatorText = '';
+
+                    // Determine item type and link
+                    if (item.id.kind === 'youtube#video' || item.kind === 'youtube#video' || item.kind === 'youtube#playlistItem') {
+                        // For videos found directly by search, or within playlists
+                        const videoId = item.id.videoId || item.snippet.resourceId.videoId; // Handle search vs playlist item structure
+                        linkHref = `./?v=${videoId}`; 
+                        itemType = 'video-item';
+
+                        // Check if it's a short (heuristic: aspect ratio or duration - API doesn't give direct "is_short")
+                        // For simplicity, let's assume if it's found in a general search and is very short, it might be a short.
+                        // Or we can rely on a specific 'shorts' search type if available in the future.
+                        // For now, let's just tag based on initial `type` requested if known.
+                        // A better way would be to fetch contentDetails to check duration or dimension.
+                        typeIndicatorText = '動画';
+                        if (item.id.kind === 'youtube#video' && item.snippet.channelId && item.snippet.channelId === 'UCBR8_B2dK-gzF3Yj2P7P0-g') { // Heuristic for YouTube Shorts channel
+                             typeIndicatorText = 'ショート'; // This is a weak heuristic
+                        }
+
+                        // Highlight currently playing video in playlist context
+                        if (currentPlayingVideoId && videoId === currentPlayingVideoId) {
+                            li.style.border = '2px solid #007bff';
+                            li.style.boxShadow = '0 0 10px rgba(0, 123, 255, 0.5)';
+                        }
+
+                    } else if (item.id.kind === 'youtube#channel') {
+                        linkHref = `./?c=${item.id.channelId}`; 
+                        itemType = 'channel-item';
+                        typeIndicatorText = 'チャンネル';
+                        li.style.width = 'calc(100% - 20px)'; 
+                    } else if (item.id.kind === 'youtube#playlist') {
+                        linkHref = `./?p=${item.id.playlistId}`; 
+                        itemType = 'playlist-item';
+                        typeIndicatorText = '再生リスト';
+                        li.style.width = 'calc(100% - 20px)'; 
+                    } else {
+                        return; // Skip other unsupported types (e.g., live streams as distinct search item types)
+                    }
+                    
+                    li.classList.add(itemType);
+                    li.innerHTML = `
+                        <a href="${linkHref}">
+                            <img src="${thumbnailUrl}" alt="${title}" onerror="this.onerror=null;this.src='https://placehold.co/120x90/cccccc/333333?text=No+Image';">
+                            <h4>${title}</h4>
+                            <span class="type-indicator">${typeIndicatorText}</span>
+                        </a>
+                    `;
+                    ul.appendChild(li);
+                });
+                targetElement.appendChild(ul);
+            }
+
+
+            // Function to fetch video details (title, tags, channel title, live status)
+            async function fetchVideoDetails(videoId) {
+                videoDetailsSpinner.style.display = 'block'; // Show spinner
+                videoTitleOutput.innerHTML = ''; // Clear previous title
+                relatedVideosOutput.innerHTML = ''; // Clear previous related videos
+                showMessage(relatedVideosOutput, '関連動画を読み込み中...', '#777'); // Initial message for related videos
+
+                // Reset display type options
+                displayTypeSelect.disabled = false;
+                liveWarning.style.display = 'none';
+                displayTypeSelect.querySelector('option[value="videoTag"]').disabled = false;
+                displayTypeSelect.value = 'embed'; // Default to embed
+
+
+                try {
+                    // Request 'snippet' part to get title, tags, channelTitle, and liveBroadcastContent
+                    const url = `${YOUTUBE_API_BASE_URL}videos?part=snippet&id=${videoId}&key=${YOUTUBE_API_KEY}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`YouTube API Error: ${response.status} - ${errorText}`);
+                    }
+                    const data = await response.json();
+
+                    if (data.items && data.items.length > 0) {
+                        const snippet = data.items[0].snippet;
+                        const videoTitle = snippet.title;
+                        const videoTags = snippet.tags || []; // Tags might not exist
+                        const channelTitle = snippet.channelTitle;
+                        const channelId = snippet.channelId; // Get channel ID here
+                        // Check liveBroadcastContent property
+                        const isLive = snippet.liveBroadcastContent === 'live';
+
+                        videoTitleOutput.innerHTML = `<h3>動画タイトル: <br>${videoTitle} ${isLive ? '<span style="color: red; font-size: 0.8em;">(ライブ配信中)</span>' : ''}</h3>`;
+                        
+                        // If it's a live stream, disable videoTag option and show warning
+                        if (isLive) {
+                            displayTypeSelect.querySelector('option[value="videoTag"]').disabled = true;
+                            displayTypeSelect.value = 'embed'; // Force embed
+                            liveWarning.style.display = 'block';
+                            showMessage(outputDiv, 'ライブストリームのため、表示タイプは「YouTube公式埋め込み」に固定されました。', 'orange');
+                        }
+
+                        // Pass all relevant info to fetchRelatedVideosForDisplay
+                        await fetchRelatedVideosForDisplay(videoId, videoTitle, videoTags, channelId); 
+                    } else {
+                        showMessage(videoTitleOutput, '動画のタイトルが見つかりませんでした。', 'orange');
+                        showMessage(relatedVideosOutput, '関連動画が見つかりませんでした。', 'orange');
+                    }
+                } catch (error) {
+                    console.error('動画詳細の取得中にエラーが発生しました:', error);
+                    showMessage(videoTitleOutput, `動画タイトル取得エラー: ${error.message}`, 'red');
+                    showMessage(relatedVideosOutput, `関連動画取得エラー: ${error.message}`, 'red');
+                } finally {
+                    videoDetailsSpinner.style.display = 'none'; // Hide spinner
+                }
+            }
+
+            // Function to fetch related videos based on videoId (actual related videos from YouTube)
+            // and fallback to channel/tags/title if needed
+            async function fetchRelatedVideosForDisplay(videoId, videoTitle, videoTags, channelId) {
+                relatedVideosOutput.innerHTML = ''; // Clear previous related videos
+                const allRelatedVideos = []; // Array to store all collected related videos
+                const collectedVideoIds = new Set(); // To prevent duplicates
+                const maxResultsPerQuery = 50; 
+
+                // --- 1. Search using relatedToVideoId (most relevant official related videos) ---
+                try {
+                    const relatedQueryUrl = `${YOUTUBE_API_BASE_URL}search?part=snippet&relatedToVideoId=${videoId}&type=video&maxResults=${maxResultsPerQuery}&key=${YOUTUBE_API_KEY}`;
+                    const relatedResponse = await fetch(relatedQueryUrl);
+                    if (!relatedResponse.ok) {
+                        throw new Error(`YouTube API Error (RelatedToVideoId Search): ${relatedResponse.status}`);
+                    }
+                    const relatedData = await relatedResponse.json();
+                    if (relatedData.items) {
+                        relatedData.items.filter(item => item.id.kind === 'youtube#video').forEach(item => {
+                            if (!collectedVideoIds.has(item.id.videoId)) {
+                                allRelatedVideos.push(item);
+                                collectedVideoIds.add(item.id.videoId);
+                            }
+                        });
+                    }
+                } catch (error) {
+                    console.error('関連動画 (relatedToVideoId) 取得中にエラーが発生しました:', error);
+                }
+
+                // --- 2. Search by Channel ID (if primary search yielded few results or failed) ---
+                if (channelId && allRelatedVideos.length < maxResultsPerQuery) {
+                    try {
+                        const channelVideosUrl = `${YOUTUBE_API_BASE_URL}search?part=snippet&channelId=${channelId}&type=video&maxResults=${maxResultsPerQuery - allRelatedVideos.length}&key=${YOUTUBE_API_KEY}`;
+                        const channelVideosResponse = await fetch(channelVideosUrl);
+                        if (!channelVideosResponse.ok) {
+                            throw new Error(`YouTube API Error (Channel Videos Search): ${channelVideosResponse.status}`);
+                        }
+                        const channelVideosData = await channelVideosResponse.json();
+                        if (channelVideosData.items) {
+                            channelVideosData.items.filter(item => item.id.kind === 'youtube#video').forEach(item => {
+                                if (!collectedVideoIds.has(item.id.videoId)) {
+                                    allRelatedVideos.push(item);
+                                    collectedVideoIds.add(item.id.videoId);
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('チャンネルIDでの動画取得中にエラーが発生しました:', error);
+                    }
+                }
+
+                // --- 3. Search by Tags (if needed to fill up to 50, or if previous searches failed) ---
+                if (videoTags.length > 0 && allRelatedVideos.length < maxResultsPerQuery) {
+                    try {
+                        const tagsQuery = videoTags.slice(0, 5).join(' '); // Use top 5 tags for broad search
+                        if (tagsQuery) {
+                            const tagsQueryUrl = `${YOUTUBE_API_BASE_URL}search?part=snippet&q=${encodeURIComponent(tagsQuery)}&type=video&maxResults=${maxResultsPerQuery - allRelatedVideos.length}&key=${YOUTUBE_API_KEY}`;
+                            const tagsResponse = await fetch(tagsQueryUrl);
+                            if (!tagsResponse.ok) {
+                                throw new Error(`YouTube API Error (Tags Search): ${tagsResponse.status}`);
+                            }
+                            const tagsData = await tagsResponse.json();
+                            if (tagsData.items) {
+                                tagsData.items.filter(item => item.id.kind === 'youtube#video').forEach(item => {
+                                    if (!collectedVideoIds.has(item.id.videoId)) {
+                                        allRelatedVideos.push(item);
+                                        collectedVideoIds.add(item.id.videoId);
+                                    }
+                                });
+                            }
+                        }
+                    } catch (error) {
+                        console.error('タグでの関連動画取得中にエラーが発生しました:', error);
+                    }
+                }
+                
+                // --- 4. Fallback: Search by Video Title (if still few results) ---
+                if (allRelatedVideos.length < maxResultsPerQuery && videoTitle) {
+                     try {
+                        const titleQueryUrl = `${YOUTUBE_API_BASE_URL}search?part=snippet&q=${encodeURIComponent(videoTitle)}&type=video&maxResults=${maxResultsPerQuery - allRelatedVideos.length}&key=${YOUTUBE_API_KEY}`;
+                        const titleResponse = await fetch(titleQueryUrl);
+                        if (!titleResponse.ok) {
+                            throw new Error(`YouTube API Error (Title Search): ${titleResponse.status}`);
+                        }
+                        const titleData = await titleResponse.json();
+                        if (titleData.items) {
+                            titleData.items.filter(item => item.id.kind === 'youtube#video').forEach(item => {
+                                if (!collectedVideoIds.has(item.id.videoId)) {
+                                    allRelatedVideos.push(item);
+                                    collectedVideoIds.add(item.id.videoId);
+                                }
+                            });
+                        }
+                    } catch (error) {
+                        console.error('タイトルでの関連動画取得中にエラーが発生しました:', error);
+                    }
+                }
+
+                // Display all collected videos using the generic renderSearchResults function
+                renderSearchResults(allRelatedVideos, relatedVideosOutput);
+            }
+
+            // Function to perform a general text search (for videos, channels, and playlists)
+            async function performTextSearch(query) {
+                videoDetailsSpinner.style.display = 'block'; // Show spinner
+                videoTitleOutput.innerHTML = ''; // Clear video title output (not applicable for general search)
+                relatedVideosOutput.innerHTML = ''; // Clear related videos output
+                showMessage(relatedVideosOutput, '検索結果を読み込み中...', '#777');
+
+                try {
+                    // type=video,channel,playlist to get all relevant types
+                    const url = `${YOUTUBE_API_BASE_URL}search?part=snippet&q=${encodeURIComponent(query)}&type=video,channel,playlist&maxResults=50&key=${YOUTUBE_API_KEY}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`YouTube API Error (General Search): ${response.status} - ${errorText}`);
+                    }
+                    const data = await response.json();
+                    
+                    renderSearchResults(data.items || [], relatedVideosOutput);
+
+                } catch (error) {
+                    console.error('テキスト検索中にエラーが発生しました:', error);
+                    showMessage(relatedVideosOutput, `検索エラー: ${error.message}`, 'red');
+                } finally {
+                    videoDetailsSpinner.style.display = 'none'; // Hide spinner
+                }
+            }
+
+            // Function to fetch content (videos, shorts, playlists) from a specific channel
+            async function fetchChannelContent(channelId, typeFilter = 'all') { // 'all', 'video', 'short', 'playlist'
+                videoDetailsSpinner.style.display = 'block'; 
+                videoTitleOutput.innerHTML = ''; 
+                relatedVideosOutput.innerHTML = ''; 
+                showMessage(relatedVideosOutput, 'チャンネルコンテンツを読み込み中...', '#777');
+
+                try {
+                    // Fetch channel details to get the channel title
+                    const channelDetailsUrl = `${YOUTUBE_API_BASE_URL}channels?part=snippet&id=${channelId}&key=${YOUTUBE_API_KEY}`;
+                    const channelDetailsResponse = await fetch(channelDetailsUrl);
+                    const channelDetailsData = await channelDetailsResponse.json();
+                    const channelTitle = channelDetailsData.items?.[0]?.snippet?.title || `チャンネルID: ${channelId}`;
+                    videoTitleOutput.innerHTML = `<h3>チャンネル: <br>${channelTitle}</h3>`;
+
+
+                    let searchType = 'video,playlist'; // Default types to search for in a channel
+                    if (typeFilter === 'video' || typeFilter === 'short') {
+                        searchType = 'video'; // Filter for only videos if 'video' or 'short' is requested
+                    } else if (typeFilter === 'playlist') {
+                        searchType = 'playlist'; // Filter for only playlists
+                    }
+
+                    // Fetch content from the channel
+                    const url = `${YOUTUBE_API_BASE_URL}search?part=snippet&channelId=${channelId}&type=${searchType}&maxResults=50&key=${YOUTUBE_API_KEY}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`YouTube API Error (Channel Content): ${response.status} - ${errorText}`);
+                    }
+                    const data = await response.json();
+
+                    let filteredItems = data.items || [];
+
+                    // Further filter for 'short' based on heuristic (e.g., duration from contentDetails, but that's a separate API call per video)
+                    // For now, if 'short' is requested, we can't reliably filter without another API call per video.
+                    // Let's assume 'video' type covers shorts for now, and rely on renderSearchResults to differentiate if possible.
+                    if (typeFilter === 'video') {
+                        filteredItems = filteredItems.filter(item => item.id.kind === 'youtube#video'); // Explicitly only videos
+                    } else if (typeFilter === 'playlist') {
+                        filteredItems = filteredItems.filter(item => item.id.kind === 'youtube#playlist'); // Explicitly only playlists
+                    }
+                    // For 'short', it's hard to filter purely from search results. It's usually a video with certain characteristics.
+                    // We'll treat 'short' as 'video' for now and rely on future API enhancements or more complex logic.
+
+                    renderSearchResults(filteredItems, relatedVideosOutput);
+                    if (filteredItems.length === 0) {
+                        showMessage(relatedVideosOutput, 'このカテゴリのコンテンツは見つかりませんでした。', 'orange');
+                    }
+
+                } catch (error) {
+                    console.error('チャンネルコンテンツの取得中にエラーが発生しました:', error);
+                    showMessage(videoTitleOutput, `チャンネルコンテンツ取得エラー: ${error.message}`, 'red');
+                    showMessage(relatedVideosOutput, `チャンネルコンテンツ取得エラー: ${error.message}`, 'red');
+                } finally {
+                    videoDetailsSpinner.style.display = 'none'; // Hide spinner
+                }
+            }
+
+            // Function to fetch videos from a specific playlist and play the first one
+            async function fetchPlaylistVideos(playlistId) {
+                videoDetailsSpinner.style.display = 'block';
+                videoTitleOutput.innerHTML = '';
+                relatedVideosOutput.innerHTML = '';
+                showMessage(relatedVideosOutput, '再生リストの動画を読み込み中...', '#777');
+
+                try {
+                    // Get playlist details (title)
+                    const playlistDetailsUrl = `${YOUTUBE_API_BASE_URL}playlists?part=snippet&id=${playlistId}&key=${YOUTUBE_API_KEY}`;
+                    const playlistDetailsResponse = await fetch(playlistDetailsUrl);
+                    const playlistDetailsData = await playlistDetailsResponse.json();
+                    const playlistTitle = playlistDetailsData.items?.[0]?.snippet?.title || `再生リストID: ${playlistId}`;
+                    videoTitleOutput.innerHTML = `<h3>再生リスト: <br>${playlistTitle}</h3>`;
+
+                    // Get playlist items
+                    const playlistItemsUrl = `${YOUTUBE_API_BASE_URL}playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${YOUTUBE_API_KEY}`;
+                    const playlistItemsResponse = await fetch(playlistItemsUrl);
+                    if (!playlistItemsResponse.ok) {
+                        throw new Error(`YouTube API Error (Playlist Items): ${playlistItemsResponse.status}`);
+                    }
+                    const playlistItemsData = await playlistItemsResponse.json();
+
+                    if (playlistItemsData.items && playlistItemsData.items.length > 0) {
+                        const firstVideo = playlistItemsData.items[0];
+                        const firstVideoId = firstVideo.snippet.resourceId.videoId;
+
+                        // Play the first video
+                        const finalDisplayType = displayTypeSelect.value;
+                        if (finalDisplayType === 'embed') {
+                            const configUrl = 'https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json';
+                            try {
+                                const response = await fetch(configUrl);
+                                const data = await response.json();
+                                let paramsString = data.params || '';
+                                paramsString = paramsString.replace(/&/g, '&');
+                                if (paramsString.startsWith('?')) paramsString = paramsString.substring(1);
+                                const tempParams = new URLSearchParams(paramsString);
+                                const finalParams = new URLSearchParams();
+                                for (const [key, value] of tempParams.entries()) {
+                                    finalParams.set(key, decodeURIComponent(value));
+                                }
+                                const finalParamsString = finalParams.toString() ? `?${finalParams.toString()}` : '';
+                                const embedSrc = `https://www.youtubeeducation.com/embed/${firstVideoId}${finalParamsString}`;
+                                const iframeCode = `<iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+                                videoContainer.innerHTML = iframeCode;
+                            } catch (error) {
+                                console.error('設定ファイルの取得または処理中にエラーが発生しました:', error);
+                                videoContainer.innerHTML = `<iframe src="https://www.youtubeeducation.com/embed/${firstVideoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+                            }
+                        } else if (finalDisplayType === 'videoTag') {
+                            const videoTagCode = `<video id="player" controls="" width="100%" height="100%">
+                                お使いのブラウザは video タグをサポートしていません。
+                                <source src="https://inv-us4-c.nadeko.net/latest_version?id=${firstVideoId}&itag=18&check=" type="video/mp4">
+                                <source src="https://inv-us2-c.nadeko.net/latest_version?id=${firstVideoId}&itag=18&check=" type="video/mp4">
+                                <source src="https://inv-ca1-c.nadeko.net/latest_version?id=${firstVideoId}&itag=18&check=" type="video/mp4">
+                                <source src="https://inv-eu3-c.nadeko.net/latest_version?id=${firstVideoId}&itag=18&check=" type="video/mp4">
+                            </video>`;
+                            videoContainer.innerHTML = videoTagCode;
+                        }
+                        showMessage(outputDiv, `再生リスト「${playlistTitle}」の最初の動画が再生されました。`, 'green');
+
+                        // Display the rest of the playlist items as related videos
+                        // First video is already playing, so start from the second one for related list
+                        renderSearchResults(playlistItemsData.items, relatedVideosOutput, firstVideoId);
+
+                    } else {
+                        showMessage(videoTitleOutput, 'この再生リストには動画がありません。', 'orange');
+                        showMessage(relatedVideosOutput, 'この再生リストには動画がありません。', 'orange');
+                    }
+
+                } catch (error) {
+                    console.error('再生リストの動画取得中にエラーが発生しました:', error);
+                    showMessage(videoTitleOutput, `再生リスト取得エラー: ${error.message}`, 'red');
+                    showMessage(relatedVideosOutput, `再生リスト取得エラー: ${error.message}`, 'red');
+                } finally {
+                    videoDetailsSpinner.style.display = 'none'; // Hide spinner
+                }
+            }
+
+
+            processButton.addEventListener('click', async () => {
+                const urlOrQuery = youtubeLinkInput.value.trim();
+                const displayType = displayTypeSelect.value;
+
+                // Clear all dynamic content areas
+                outputDiv.innerHTML = ''; 
+                videoContainer.innerHTML = ''; 
+                videoTitleOutput.innerHTML = ''; 
+                relatedVideosOutput.innerHTML = ''; 
+                liveWarning.style.display = 'none'; // Hide live warning by default
+                displayTypeSelect.disabled = false; // Enable select box by default
+                displayTypeSelect.querySelector('option[value="videoTag"]').disabled = false; // Enable videoTag option by default
+                showMessage(relatedVideosOutput, '関連動画/検索結果を読み込み中...', '#777'); // Reset message
+
+
+                if (!urlOrQuery) {
+                    showMessage(outputDiv, 'YouTubeのURLまたは検索クエリを入力してください。');
+                    return;
+                }
+
+                const videoId = extractVideoId(urlOrQuery);
+                const channelId = extractChannelId(urlOrQuery);
+                const playlistId = extractPlaylistId(urlOrQuery);
+
+
+                if (videoId) {
+                    // If it's a YouTube video URL, extract video ID and proceed with video display
+                    await fetchVideoDetails(videoId);
+
+                    const finalDisplayType = displayTypeSelect.value; 
+
+                    if (finalDisplayType === 'embed') {
+                        const configUrl = 'https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json';
+                        
+                        try {
+                            const response = await fetch(configUrl);
+                            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                            const data = await response.json();
+                            let paramsString = data.params || ''; 
+                            paramsString = paramsString.replace(/&/g, '&');
+                            if (paramsString.startsWith('?')) paramsString = paramsString.substring(1);
+                            const tempParams = new URLSearchParams(paramsString);
+                            const finalParams = new URLSearchParams();
+                            for (const [key, value] of tempParams.entries()) {
+                                finalParams.set(key, decodeURIComponent(value));
+                            }
+                            const finalParamsString = finalParams.toString() ? `?${finalParams.toString()}` : '';
+
+                            const embedSrc = `https://www.youtubeeducation.com/embed/${videoId}${finalParamsString}`;
+                            const iframeCode = `<iframe src="${embedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+                            
+                            videoContainer.innerHTML = iframeCode;
+                            showMessage(outputDiv, 'YouTube動画が埋め込まれました。', 'green');
+
+                        } catch (error) {
+                            console.error('設定ファイルの取得または処理中にエラーが発生しました:', error);
+                            showMessage(outputDiv, '埋め込みパラメータの取得または処理に失敗しました。デフォルトの埋め込みを試みます。', 'orange');
+                            const defaultEmbedSrc = `https://www.youtubeeducation.com/embed/${videoId}`;
+                            const defaultIframeCode = `<iframe src="${defaultEmbedSrc}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
+                            videoContainer.innerHTML = defaultIframeCode;
+                        }
+
+                    } else if (finalDisplayType === 'videoTag') {
+                        const videoTagCode = `<video id="player" controls="" width="100%" height="100%">
+        お使いのブラウザは video タグをサポートしていません。
+      <source src="https://inv-us4-c.nadeko.net/latest_version?id=${videoId}&itag=18&check=" type="video/mp4">
+      <source src="https://inv-us2-c.nadeko.net/latest_version?id=${videoId}&itag=18&check=" type="video/mp4">
+      <source src="https://inv-ca1-c.nadeko.net/latest_version?id=${videoId}&itag=18&check=" type="video/mp4">
+      <source src="https://inv-eu3-c.nadeko.net/latest_version?id=${videoId}&itag=18&check=" type="video/mp4">
+    </video>`;
+                        videoContainer.innerHTML = videoTagCode;
+                        showMessage(outputDiv, 'Videoタグで動画が表示されました。', 'green');
+                    }
+                } else if (playlistId) {
+                    // If it's a YouTube playlist URL
+                    await fetchPlaylistVideos(playlistId);
+                    showMessage(outputDiv, `再生リストの動画を表示しました。`, 'blue');
+                } else if (channelId) {
+                    // If it's a YouTube channel URL
+                    // Get 'type' parameter from current URL, or default to 'all' for channel content
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const contentType = urlParams.get('type') || 'all'; 
+                    await fetchChannelContent(channelId, contentType);
+                    showMessage(outputDiv, `チャンネルコンテンツを表示しました。`, 'blue');
+                    videoContainer.innerHTML = ''; // Clear video display as it's a channel search
+                } else {
+                    // It's a search query, perform general text search
+                    await performTextSearch(urlOrQuery);
+                    showMessage(outputDiv, `「${urlOrQuery}」の検索結果を表示しました。`, 'blue');
+                    // Hide video container as it's not a direct video display
+                    videoContainer.innerHTML = '';
+                    videoTitleOutput.innerHTML = ''; // No single video title for general search
+                }
+            });
+
+            // --- Auto-load video/channel/playlist from URL parameter on page load ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const initialVideoId = urlParams.get('v');
+            const initialChannelId = urlParams.get('c');
+            const initialPlaylistId = urlParams.get('p');
+            const initialContentType = urlParams.get('type'); // Get type for channel
+
+            if (initialVideoId) {
+                youtubeLinkInput.value = `https://www.youtube.com/watch?v=${initialVideoId}`; 
+                processButton.click(); 
+            } else if (initialPlaylistId) {
+                youtubeLinkInput.value = `https://ssyoutube.com/7{initialPlaylistId}`;
+                processButton.click();
+            }
+            else if (initialChannelId) {
+                // For channel, we need to consider the optional 'type' parameter
+                let channelUrl = `https://www.youtube.com/channel/${initialChannelId}`;
+                if (initialContentType) {
+                    channelUrl += `&type=${initialContentType}`;
+                }
+                youtubeLinkInput.value = channelUrl;
+                processButton.click(); 
+            }
+        });
+    </script>
+</body>
+</html>

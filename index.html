@@ -1,3 +1,4 @@
+<!--　--- YouTubeデータAPIキー（必要に応じてここにキーを追加してください）今あるのは特定のドメイン、かつクッキー認証、アカウント認証がなされて初めて使える APIキーのみです。あなたが使う場合、自分の APIキーを増やしてください --- -->
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -345,11 +346,11 @@
             const videoTitleOutput = document.getElementById('videoTitleOutput');
             const relatedVideosOutput = document.getElementById('relatedVideosOutput');
 
-            // --- YouTubeデータAPIキー（必要に応じてここにキーを追加してください）今あるのは特定のドメイン、かつクッキー認証、アカウント認証がなされて初めて使える APIキーのみです。あなたが使う場合、自分の APIキーを増やしてください ---
+            // --- YouTube Data API Keys (Add more keys here if needed) ---
             // 複数のAPIキーをここに配列として追加してください。
             // クォータ制限に達した場合、自動的に次のキーが試されます。
             const YOUTUBE_API_KEYS = [
-                'AIzaSyBRNyOckOQiL7kD9MU8cnuzT72bIvT0WIU', // Your provided key
+                'AIzaSyBRNyOckOQiL7kD9MU8cnuzT72bIvT0WIU', // Provided key
                 'AIzaSyB2OJjO3OM8O7Oa7IfjeTOv1Pao7iLYQVw',
                 'AIzaSyCGcnKGvqSSA6aoRSLAVwe-jflLUspnzKU',
                 'AIzaSyB-MXLeiknlJw_ZTBxwxi9j4F3mUFtgoP0',
@@ -359,7 +360,6 @@
                 'AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s',
                 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
                 'AIzaSyCUWi1IzN-ZiMx6Tct9BzpxAnffJvhDo8c',
-                // 'YOUR_THIRD_API_KEY_HERE',
             ];
             let currentApiKeyIndex = 0; // Keep track of the current key being used
 
@@ -375,27 +375,37 @@
                     
                     try {
                         const response = await fetch(url);
+                        // --- IMPORTANT: Consume the response body ONCE ---
+                        let responseData;
+                        try {
+                            responseData = await response.json();
+                        } catch (jsonError) {
+                            // If it's not JSON, try to read as text for error debugging
+                            responseData = await response.text();
+                            throw new Error(`Failed to parse JSON response: ${jsonError.message}. Response: ${responseData}`);
+                        }
+
                         if (response.status === 403) {
-                            const errorData = await response.json();
-                            if (errorData.error && errorData.error.errors && errorData.error.errors.some(e => e.reason === 'quotaExceeded')) {
+                            if (responseData.error && responseData.error.errors && responseData.error.errors.some(e => e.reason === 'quotaExceeded')) {
                                 console.warn(`API Key ${currentApiKeyIndex + 1}/${YOUTUBE_API_KEYS.length} exceeded quota. Trying next key.`);
                                 currentApiKeyIndex = (currentApiKeyIndex + 1) % YOUTUBE_API_KEYS.length; // Move to next key, cycle back to start if at end
                                 if (currentApiKeyIndex === initialKeyIndex) {
                                     // If we've cycled through all keys and returned to the start, all are exhausted
-                                    throw new Error("全て利用可能なYouTube APIキーがクォータ制限を超過したか、または失敗しました。");
+                                    throw new Error("全て利用可能なYouTube APIキーがクォータ制限を超過したか、または失敗しました。APIクォータのリセットをお待ちください。");
                                 }
                                 continue; // Try the next key
                             }
                         }
+                        
                         if (!response.ok) {
-                            const errorText = await response.text();
-                            throw new Error(`YouTube API Error: ${response.status} - ${errorText}`);
+                            // Non-200 status, but not a quota error (or could be other 403)
+                            throw new Error(`YouTube API Error: ${response.status} - ${JSON.stringify(responseData)}`);
                         }
-                        return await response.json(); // Success!
+
+                        return responseData; // Success!
                     } catch (error) {
-                        console.error(`API call failed with key ${currentApiKeyIndex}:`, error);
-                        // If it's a network error or a non-quota 403, re-throw immediately
-                        throw error;
+                        console.error(`API call failed with key ${currentApiKeyIndex + 1}/${YOUTUBE_API_KEYS.length}:`, error);
+                        throw error; // Re-throw the error to be caught by higher-level functions
                     }
                 }
             }
@@ -478,13 +488,7 @@
                         const videoId = item.id ? item.id.videoId : item.snippet.resourceId.videoId; // Handle search vs playlist item structure
                         linkHref = `./?v=${videoId}`; 
                         itemType = 'video-item';
-                        typeIndicatorText = '動画'; // Default to video
-
-                        // Simple heuristic for shorts based on title/description or if it's explicitly a short URL type
-                        // A more robust check requires fetching contentDetails for duration/dimension
-                        if (item.snippet.description.includes('shorts') || item.snippet.title.includes('Short')) { // Very basic heuristic
-                             // This is a weak heuristic, API doesn't provide direct 'is_short' flag in search
-                        }
+                        typeIndicatorText = '動画'; 
 
                         // Highlight currently playing video in playlist context
                         if (currentPlayingVideoId && videoId === currentPlayingVideoId) {
@@ -536,7 +540,6 @@
 
 
                 try {
-                    // Request 'snippet' part to get title, tags, channelTitle, and liveBroadcastContent
                     const data = await callYouTubeApi(`videos`, `part=snippet&id=${videoId}`);
 
                     if (data.items && data.items.length > 0) {
@@ -545,20 +548,17 @@
                         const videoTags = snippet.tags || []; // Tags might not exist
                         const channelTitle = snippet.channelTitle;
                         const channelId = snippet.channelId; // Get channel ID here
-                        // Check liveBroadcastContent property
-                        const isLive = snippet.liveBroadcastContent === 'live' || snippet.liveBroadcastContent === 'upcoming'; // 'upcoming' also means live/future stream
+                        const isLive = snippet.liveBroadcastContent === 'live' || snippet.liveBroadcastContent === 'upcoming'; 
 
                         videoTitleOutput.innerHTML = `<h3>動画タイトル: <br>${videoTitle} ${isLive ? '<span style="color: red; font-size: 0.8em;">(ライブ配信中)</span>' : ''}</h3>`;
                         
-                        // If it's a live stream, disable videoTag option and show warning
                         if (isLive) {
                             displayTypeSelect.querySelector('option[value="videoTag"]').disabled = true;
-                            displayTypeSelect.value = 'embed'; // Force embed
+                            displayTypeSelect.value = 'embed'; 
                             liveWarning.style.display = 'block';
                             showMessage(outputDiv, 'ライブストリームのため、表示タイプは「YouTube公式埋め込み」に固定されました。', 'orange');
                         }
 
-                        // Pass all relevant info to fetchRelatedVideosForDisplay
                         await fetchRelatedVideosForDisplay(videoId, videoTitle, videoTags, channelId); 
                     } else {
                         showMessage(videoTitleOutput, '動画のタイトルが見つかりませんでした。', 'orange');
@@ -573,13 +573,10 @@
                 }
             }
 
-            // Function to fetch related videos based on videoId (actual related videos from YouTube)
-            // and fallback to channel/tags/title if needed
             async function fetchRelatedVideosForDisplay(videoId, videoTitle, videoTags, channelId) {
-                relatedVideosOutput.innerHTML = ''; // Clear previous related videos
-                const allRelatedVideos = []; // Array to store all collected related videos
-                const collectedVideoIds = new Set(); // To prevent duplicates
-
+                relatedVideosOutput.innerHTML = ''; 
+                const allRelatedVideos = []; 
+                const collectedVideoIds = new Set(); 
                 const maxResultsPerQuery = 50; 
 
                 // --- 1. Search using relatedToVideoId (most relevant official related videos) ---
@@ -617,7 +614,7 @@
                 // --- 3. Search by Tags (if needed to fill up to 50, or if previous searches failed) ---
                 if (videoTags.length > 0 && allRelatedVideos.length < maxResultsPerQuery) {
                     try {
-                        const tagsQuery = videoTags.slice(0, 5).join(' '); // Use top 5 tags for broad search
+                        const tagsQuery = videoTags.slice(0, 5).join(' '); 
                         if (tagsQuery) {
                             const tagsData = await callYouTubeApi(`search`, `part=snippet&q=${encodeURIComponent(tagsQuery)}&type=video&maxResults=${maxResultsPerQuery - allRelatedVideos.length}`);
                             if (tagsData.items) {
@@ -651,19 +648,16 @@
                     }
                 }
 
-                // Display all collected videos using the generic renderSearchResults function
                 renderSearchResults(allRelatedVideos, relatedVideosOutput);
             }
 
-            // Function to perform a general text search (for videos, channels, and playlists)
             async function performTextSearch(query) {
-                videoDetailsSpinner.style.display = 'block'; // Show spinner
-                videoTitleOutput.innerHTML = ''; // Clear video title output (not applicable for general search)
-                relatedVideosOutput.innerHTML = ''; // Clear related videos output
+                videoDetailsSpinner.style.display = 'block'; 
+                videoTitleOutput.innerHTML = ''; 
+                relatedVideosOutput.innerHTML = ''; 
                 showMessage(relatedVideosOutput, '検索結果を読み込み中...', '#777');
 
                 try {
-                    // type=video,channel,playlist to get all relevant types
                     const data = await callYouTubeApi(`search`, `part=snippet&q=${encodeURIComponent(query)}&type=video,channel,playlist&maxResults=50`);
                     
                     renderSearchResults(data.items || [], relatedVideosOutput);
@@ -676,7 +670,6 @@
                 }
             }
 
-            // Function to fetch content (videos, shorts, playlists) from a specific channel
             async function fetchChannelContent(channelId, typeFilter = 'all') { // 'all', 'video', 'playlist'
                 videoDetailsSpinner.style.display = 'block'; 
                 videoTitleOutput.innerHTML = ''; 
@@ -684,31 +677,22 @@
                 showMessage(relatedVideosOutput, 'チャンネルコンテンツを読み込み中...', '#777');
 
                 try {
-                    // Fetch channel details to get the channel title
                     const channelDetailsData = await callYouTubeApi(`channels`, `part=snippet&id=${channelId}`);
                     const channelTitle = channelDetailsData.items?.[0]?.snippet?.title || `チャンネルID: ${channelId}`;
                     videoTitleOutput.innerHTML = `<h3>チャンネル: <br>${channelTitle}</h3>`;
 
 
-                    let searchType = 'video,playlist'; // Default types to search for in a channel search endpoint
+                    let searchType = 'video,playlist'; 
                     if (typeFilter === 'video') {
                         searchType = 'video'; 
                     } else if (typeFilter === 'playlist') {
                         searchType = 'playlist'; 
                     }
 
-                    // Fetch content from the channel using search endpoint
                     const data = await callYouTubeApi(`search`, `part=snippet&channelId=${channelId}&type=${searchType}&maxResults=50`);
 
                     let filteredItems = data.items || [];
                     
-                    // Note: YouTube API's 'search' endpoint for channel content doesn't directly
-                    // distinguish 'shorts' from 'videos' via a specific filter.
-                    // Shorts are just videos with specific properties (e.g., aspect ratio, duration).
-                    // For now, `type=video` will include all videos from the channel.
-                    // To truly separate shorts, each video would need an additional 'videos' API call for contentDetails.
-                    // This is beyond current scope to avoid excessive API quota usage.
-
                     renderSearchResults(filteredItems, relatedVideosOutput);
                     if (filteredItems.length === 0) {
                         showMessage(relatedVideosOutput, 'このカテゴリのコンテンツは見つかりませんでした。', 'orange');
@@ -723,7 +707,6 @@
                 }
             }
 
-            // Function to fetch videos from a specific playlist and play the first one
             async function fetchPlaylistVideos(playlistId) {
                 videoDetailsSpinner.style.display = 'block';
                 videoTitleOutput.innerHTML = '';
@@ -731,19 +714,16 @@
                 showMessage(relatedVideosOutput, '再生リストの動画を読み込み中...', '#777');
 
                 try {
-                    // Get playlist details (title)
                     const playlistDetailsData = await callYouTubeApi(`playlists`, `part=snippet&id=${playlistId}`);
                     const playlistTitle = playlistDetailsData.items?.[0]?.snippet?.title || `再生リストID: ${playlistId}`;
                     videoTitleOutput.innerHTML = `<h3>再生リスト: <br>${playlistTitle}</h3>`;
 
-                    // Get playlist items
                     const playlistItemsData = await callYouTubeApi(`playlistItems`, `part=snippet&playlistId=${playlistId}&maxResults=50`);
 
                     if (playlistItemsData.items && playlistItemsData.items.length > 0) {
                         const firstVideo = playlistItemsData.items[0];
                         const firstVideoId = firstVideo.snippet.resourceId.videoId;
 
-                        // Play the first video
                         const finalDisplayType = displayTypeSelect.value;
                         if (finalDisplayType === 'embed') {
                             const configUrl = 'https://raw.githubusercontent.com/siawaseok3/wakame/master/video_config.json';
@@ -751,7 +731,7 @@
                                 const response = await fetch(configUrl);
                                 const data = await response.json();
                                 let paramsString = data.params || '';
-                                paramsString = paramsString.replace(/&/g, '&');
+                                paramsString = paramsString.replace(/&amp;/g, '&'); // Ensure correct replacement
                                 if (paramsString.startsWith('?')) paramsString = paramsString.substring(1);
                                 const tempParams = new URLSearchParams(paramsString);
                                 const finalParams = new URLSearchParams();
@@ -767,8 +747,6 @@
                                 videoContainer.innerHTML = `<iframe src="https://www.youtubeeducation.com/embed/${firstVideoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>`;
                             }
                         } else if (finalDisplayType === 'videoTag') {
-                            // Ensure videoTag is not used for live streams (though playlists usually don't have live streams as items)
-                            // This check is primarily handled by fetchVideoDetails if it were a direct video play.
                             const videoTagCode = `<video id="player" controls="" width="100%" height="100%">
                                 お使いのブラウザは video タグをサポートしていません。
                                 <source src="https://inv-us4-c.nadeko.net/latest_version?id=${firstVideoId}&itag=18&check=" type="video/mp4">
@@ -780,8 +758,6 @@
                         }
                         showMessage(outputDiv, `再生リスト「${playlistTitle}」の最初の動画が再生されました。`, 'green');
 
-                        // Display the rest of the playlist items as related videos
-                        // First video is already playing, so start from the second one for related list
                         renderSearchResults(playlistItemsData.items, relatedVideosOutput, firstVideoId);
 
                     } else {
@@ -825,7 +801,6 @@
 
 
                 if (videoId) {
-                    // If it's a YouTube video URL, extract video ID and proceed with video display
                     await fetchVideoDetails(videoId);
 
                     const finalDisplayType = displayTypeSelect.value; 
@@ -838,7 +813,7 @@
                             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                             const data = await response.json();
                             let paramsString = data.params || ''; 
-                            paramsString = paramsString.replace(/&/g, '&');
+                            paramsString = paramsString.replace(/&amp;/g, '&');
                             if (paramsString.startsWith('?')) paramsString = paramsString.substring(1);
                             const tempParams = new URLSearchParams(paramsString);
                             const finalParams = new URLSearchParams();
@@ -873,24 +848,20 @@
                         showMessage(outputDiv, 'Videoタグで動画が表示されました。', 'green');
                     }
                 } else if (playlistId) {
-                    // If it's a YouTube playlist URL
                     await fetchPlaylistVideos(playlistId);
                     showMessage(outputDiv, `再生リストの動画を表示しました。`, 'blue');
-                    videoContainer.innerHTML = ''; // Clear video display area initially, playlist will set its own
+                    // videoContainer content is set by fetchPlaylistVideos
                 } else if (channelId) {
-                    // If it's a YouTube channel URL
                     const urlParams = new URLSearchParams(window.location.search);
                     const contentType = urlParams.get('type') || 'all'; 
                     await fetchChannelContent(channelId, contentType);
                     showMessage(outputDiv, `チャンネルコンテンツを表示しました。`, 'blue');
-                    videoContainer.innerHTML = ''; // Clear video display as it's a channel search
+                    videoContainer.innerHTML = ''; 
                 } else {
-                    // It's a search query, perform general text search
                     await performTextSearch(urlOrQuery);
                     showMessage(outputDiv, `「${urlOrQuery}」の検索結果を表示しました。`, 'blue');
-                    // Hide video container as it's not a direct video display
                     videoContainer.innerHTML = '';
-                    videoTitleOutput.innerHTML = ''; // No single video title for general search
+                    videoTitleOutput.innerHTML = ''; 
                 }
             });
 
@@ -899,22 +870,20 @@
             const initialVideoId = urlParams.get('v');
             const initialChannelId = urlParams.get('c');
             const initialPlaylistId = urlParams.get('p');
-            const initialContentType = urlParams.get('type'); // Get type for channel
+            const initialContentType = urlParams.get('type'); 
 
             if (initialVideoId) {
                 youtubeLinkInput.value = `https://www.youtube.com/watch?v=${initialVideoId}`; 
                 processButton.click(); 
             } else if (initialPlaylistId) {
-                youtubeLinkInput.value = `https://www.youtube.com/playlist?list=${initialPlaylistId}`; // Set full URL to input
+                youtubeLinkInput.value = `https://www.youtube.com/playlist?list=${initialPlaylistId}`; 
                 processButton.click();
             }
             else if (initialChannelId) {
-                // For channel, we need to consider the optional 'type' parameter
                 let channelUrl = `https://www.youtube.com/channel/${initialChannelId}`;
                 if (initialContentType) {
-                    // Append type parameter if it exists in URL
-                    const tempUrl = new URL(`http://dummy.com${window.location.search}`); // Use dummy base URL to parse
-                    tempUrl.searchParams.set('type', initialContentType); // Ensure 'type' is set
+                    const tempUrl = new URL(`http://dummy.com${window.location.search}`); 
+                    tempUrl.searchParams.set('type', initialContentType); 
                     channelUrl += tempUrl.search;
                 }
                 youtubeLinkInput.value = channelUrl;

@@ -345,12 +345,20 @@
             const videoTitleOutput = document.getElementById('videoTitleOutput');
             const relatedVideosOutput = document.getElementById('relatedVideosOutput');
 
-            // --- YouTube Data API Keys (Add more keys here if needed) ---
+            // --- YouTubeデータAPIキー（必要に応じてここにキーを追加してください）今あるのは特定のドメイン、かつクッキー認証、アカウント認証がなされて初めて使える APIキーのみです。あなたが使う場合、自分の APIキーを増やしてください ---
             // 複数のAPIキーをここに配列として追加してください。
             // クォータ制限に達した場合、自動的に次のキーが試されます。
             const YOUTUBE_API_KEYS = [
                 'AIzaSyBRNyOckOQiL7kD9MU8cnuzT72bIvT0WIU', // Your provided key
-                // 'YOUR_SECOND_API_KEY_HERE',
+                'AIzaSyB2OJjO3OM8O7Oa7IfjeTOv1Pao7iLYQVw',
+                'AIzaSyCGcnKGvqSSA6aoRSLAVwe-jflLUspnzKU',
+                'AIzaSyB-MXLeiknlJw_ZTBxwxi9j4F3mUFtgoP0',
+                'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',
+                'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w',
+                'AIzaSyCjc_pVEDi4qsv5MtC2dMXzpIaDoRFLsxw',
+                'AIzaSyBAETezhkwP0ZWA02RsqT1zu78Fpt0bC_s',
+                'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',
+                'AIzaSyCUWi1IzN-ZiMx6Tct9BzpxAnffJvhDo8c',
                 // 'YOUR_THIRD_API_KEY_HERE',
             ];
             let currentApiKeyIndex = 0; // Keep track of the current key being used

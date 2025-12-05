@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 隊長からのご要望によりmetaタグを充実させました！ -->
+    <meta name="description" content="GitHub APIへファイルをPOSTするためのシンプルなアップローダー">
+    <meta name="author" content="Gemini programming隊">
+    <meta name="keywords" content="GitHub, API, Uploader, POST, File, HTML, JavaScript">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="GitHubファイルアップローダー">
+    <meta property="og:description" content="GitHub APIへファイルをPOSTするためのシンプルなアップローダー">
+    <meta property="og:image" content="https://kakaomames.github.io/rei/logo2.png">
+    <title>GitHubファイルアップローダー</title>
+    <!-- Tailwind CSSをCDNから読み込みます（美しいデザインのために！） -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* カスタムスタイル */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 flex items-center justify-center min-h-screen">
+
+    <div id="app" class="w-full max-w-2xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl border border-gray-100">
+        
+        <!-- ヘッダーとロゴ -->
+        <header class="mb-8 text-center">
+            <img src="https://kakaomames.github.io/rei/logo2.png" alt="ロゴ" class="w-16 h-16 mx-auto mb-3 rounded-full shadow-lg">
+            <h1 class="text-3xl font-extrabold text-gray-800">🚀 GitHubファイルアップローダー</h1>
+            <p class="text-sm text-gray-500 mt-1">エンドポイント: <code class="bg-gray-100 p-1 rounded-md text-sm">https://xeroxapp032.vercel.app/github</code></p>
+        </header>
+
+        <!-- アップロードフォーム -->
+        <form id="uploadForm" class="space-y-6">
+            
+            <!-- ファイル選択 -->
+            <div>
+                <label for="fileInput" class="block text-lg font-semibold text-gray-700 mb-2">① アップロードするファイルを選択 (必須)</label>
+                <input type="file" id="fileInput" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500 transition duration-150 ease-in-out">
+            </div>
+
+            <!-- REPOFILEPASS入力 -->
+            <div>
+                <label for="repoFilePath" class="block text-lg font-semibold text-gray-700 mb-2">② REPOFILEPASS (GitHubでの保存パス) (必須)</label>
+                <input type="text" id="repoFilePath" placeholder="例: data/new_model.obj" required class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500">
+                <p class="mt-1 text-sm text-gray-500">保存先のパスを正確に入力してください。</p>
+            </div>
+
+            <!-- COMMITMESSAGE入力 -->
+            <div>
+                <label for="commitMessage" class="block text-lg font-semibold text-gray-700 mb-2">③ COMMITMESSAGE (コミットメッセージ) (任意)</label>
+                <input type="text" id="commitMessage" placeholder="例: 新しいモデルの追加" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500">
+                <p class="mt-1 text-sm text-gray-500">空欄の場合、デフォルトのメッセージが使用されます。</p>
+            </div>
+
+            <!-- アップロードボタン -->
+            <button type="submit" id="uploadButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 ease-in-out transform hover:scale-[1.01] shadow-lg">
+                📤 ファイルをPOSTしてアップロード
+            </button>
+        </form>
+
+        <!-- ステータス/メッセージ表示エリア -->
+        <div id="messageBox" class="mt-8 p-4 rounded-lg shadow-inner min-h-[4rem] flex items-center justify-center text-gray-600 bg-gray-50 border border-gray-200 transition-colors duration-300">
+            ここにアップロード結果が表示されます。
+        </div>
+
+    </div>
+
+    <script>
+        // グローバル定数
+        const API_URL = "https://xeroxapp032.vercel.app/github";
+        
+        // DOM要素の取得
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const repoFilePathInput = document.getElementById('repoFilePath');
+        const commitMessageInput = document.getElementById('commitMessage');
+        const messageBox = document.getElementById('messageBox');
+        const uploadButton = document.getElementById('uploadButton');
+
+        // メッセージ表示関数
+        function showMessage(text, type = 'info') {
+            let bgColor = 'bg-gray-50 border-gray-200 text-gray-600';
+            let icon = 'ℹ️';
+
+            if (type === 'success') {
+                bgColor = 'bg-green-100 border-green-400 text-green-700';
+                icon = '✅ 成功:';
+            } else if (type === 'error') {
+                bgColor = 'bg-red-100 border-red-400 text-red-700';
+                icon = '❌ エラー:';
+            } else if (type === 'loading') {
+                bgColor = 'bg-yellow-100 border-yellow-400 text-yellow-700';
+                icon = '⏳ 処理中...';
+            }
+            
+            messageBox.className = `mt-8 p-4 rounded-lg shadow-inner min-h-[4rem] flex items-center justify-center font-medium transition-colors duration-300 ${bgColor}`;
+            messageBox.innerHTML = `${icon} ${text}`;
+        }
+
+        // ファイルアップロード処理
+        async function uploadFile(event) {
+            event.preventDefault(); // フォームのデフォルト送信を防止
+
+            const file = fileInput.files[0];
+            const repoFilePath = repoFilePathInput.value.trim();
+            const commitMessage = commitMessageInput.value.trim();
+
+            // 必須チェック
+            if (!file) {
+                showMessage('ファイルを選択してください。', 'error');
+                return;
+            }
+            if (!repoFilePath) {
+                showMessage('保存パス (REPOFILEPASS) を入力してください。', 'error');
+                return;
+            }
+
+            showMessage('ファイルの読み込みとアップロードを準備中...', 'loading');
+            uploadButton.disabled = true;
+            uploadButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            const reader = new FileReader();
+
+            reader.onloadend = async function() {
+                const fileData = reader.result; // ArrayBuffer (バイナリデータ)
+
+                // ヘッダーの設定
+                const headers = {
+                    'Content-Type': 'application/octet-stream',
+                    'REPOFILEPASS': repoFilePath,
+                };
+
+                // コミットメッセージが入力されていれば追加
+                if (commitMessage) {
+                    headers['COMMITMESSAGE'] = commitMessage;
+                }
+
+                try {
+                    showMessage('サーバーにファイルを送信中...', 'loading');
+                    
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: headers,
+                        body: fileData // ファイルのバイナリデータ
+                    });
+
+                    // 応答がJSONであることを期待しますが、エラーコードも確認します
+                    if (response.ok) {
+                        // 成功レスポンス（ステータス200-299）
+                        const text = await response.text();
+                        showMessage(`アップロード完了! サーバー応答: ${text.substring(0, 150)}...`, 'success');
+                    } else {
+                        // エラーレスポンス
+                        const errorText = await response.text();
+                        showMessage(`アップロードに失敗しました (ステータス: ${response.status}). サーバー応答: ${errorText.substring(0, 150)}...`, 'error');
+                    }
+
+                } catch (error) {
+                    // ネットワークエラーなど
+                    console.error('Fetch error:', error);
+                    showMessage(`ネットワークエラーが発生しました: ${error.message}`, 'error');
+                } finally {
+                    // 終了処理
+                    uploadButton.disabled = false;
+                    uploadButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            };
+
+            reader.onerror = function(error) {
+                console.error('File read error:', error);
+                showMessage(`ファイルの読み込み中にエラーが発生しました: ${error.message}`, 'error');
+                uploadButton.disabled = false;
+                uploadButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            };
+
+            // ファイルをArrayBufferとして読み込みます（バイナリPOSTのため）
+            reader.readAsArrayBuffer(file);
+        }
+
+        // フォームにイベントリスナーをセット
+        uploadForm.addEventListener('submit', uploadFile);
+
+    </script>
+</body>
+</html>

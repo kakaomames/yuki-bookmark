@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 隊長からのご要望によりmetaタグを充実させました！ -->
-    <meta name="description" content="GitHub APIへファイルをPOSTするためのシンプルなアップローダー">
+    <meta name="description" content="GitHub APIへBase64エンコードしたファイルをPOSTするためのアップローダー">
     <meta name="author" content="Gemini programming隊">
-    <meta name="keywords" content="GitHub, API, Uploader, POST, File, HTML, JavaScript">
-    <meta name="robots" content="index, follow">
-    <meta property="og:title" content="GitHubファイルアップローダー">
-    <meta property="og:description" content="GitHub APIへファイルをPOSTするためのシンプルなアップローダー">
-    <meta property="og:image" content="https://kakaomames.github.io/rei/logo2.png">
-    <title>GitHubファイルアップローダー</title>
-    <!-- Tailwind CSSをCDNから読み込みます（美しいデザインのために！） -->
+    <meta property="og:title" content="GitHub Base64ファイルアップローダー">
+    <title>GitHub Base64ファイルアップローダー</title>
+    <!-- Tailwind CSSをCDNから読み込みます -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* カスタムスタイル */
@@ -27,11 +22,12 @@
 
     <div id="app" class="w-full max-w-2xl bg-white p-6 sm:p-10 rounded-xl shadow-2xl border border-gray-100">
         
-        <!-- ヘッダーとロゴ -->
+        <!-- ヘッダー -->
         <header class="mb-8 text-center">
-            <img src="https://kakaomames.github.io/rei/logo2.png" alt="ロゴ" class="w-16 h-16 mx-auto mb-3 rounded-full shadow-lg">
-            <h1 class="text-3xl font-extrabold text-gray-800">🚀 GitHubファイルアップローダー</h1>
-            <p class="text-sm text-gray-500 mt-1">エンドポイント: <code class="bg-gray-100 p-1 rounded-md text-sm">https://xeroxapp032.vercel.app/github</code></p>
+            <img src="https://kakaomames.github.io/rei/logo.png" alt="ロゴ" class="w-16 h-16 mx-auto mb-3 rounded-full shadow-lg">
+            <h1 class="text-3xl font-extrabold text-gray-800">🚀 GitHub Base64ファイルアップローダー</h1>
+            <p class="text-sm text-gray-500 mt-1">Base64エンコード文字列をPOSTします。</p>
+            <p class="text-sm text-red-500 mt-1">※ サーバー側がBase64デコードに対応している必要があります。</p>
         </header>
 
         <!-- アップロードフォーム -->
@@ -53,13 +49,13 @@
             <!-- COMMITMESSAGE入力 -->
             <div>
                 <label for="commitMessage" class="block text-lg font-semibold text-gray-700 mb-2">③ COMMITMESSAGE (コミットメッセージ) (任意)</label>
-                <input type="text" id="commitMessage" placeholder="例: 新しいモデルの追加" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500">
+                <input type="text" id="commitMessage" placeholder="例: Base64でロゴをアップロード" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-4 focus:ring-blue-500/50 focus:border-blue-500">
                 <p class="mt-1 text-sm text-gray-500">空欄の場合、デフォルトのメッセージが使用されます。</p>
             </div>
 
             <!-- アップロードボタン -->
-            <button type="submit" id="uploadButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 ease-in-out transform hover:scale-[1.01] shadow-lg">
-                📤 ファイルをPOSTしてアップロード
+            <button type="submit" id="uploadButton" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl transition duration-300 ease-in-out transform hover:scale-[1.01] shadow-lg">
+                🚀 Base64にエンコードしてPOST
             </button>
         </form>
 
@@ -104,68 +100,70 @@
 
         // ファイルアップロード処理
         async function uploadFile(event) {
-            event.preventDefault(); // フォームのデフォルト送信を防止
+            event.preventDefault(); 
 
             const file = fileInput.files[0];
             const repoFilePath = repoFilePathInput.value.trim();
             const commitMessage = commitMessageInput.value.trim();
 
-            // 必須チェック
-            if (!file) {
-                showMessage('ファイルを選択してください。', 'error');
-                return;
-            }
-            if (!repoFilePath) {
-                showMessage('保存パス (REPOFILEPASS) を入力してください。', 'error');
+            if (!file || !repoFilePath) {
+                showMessage('ファイルと保存パスを入力してください。', 'error');
                 return;
             }
 
-            showMessage('ファイルの読み込みとアップロードを準備中...', 'loading');
+            showMessage('Base64エンコード中...', 'loading');
             uploadButton.disabled = true;
             uploadButton.classList.add('opacity-50', 'cursor-not-allowed');
 
             const reader = new FileReader();
 
             reader.onloadend = async function() {
-                const fileData = reader.result; // ArrayBuffer (バイナリデータ)
+                // Base64データURLを取得 (例: data:image/png;base64,iVBORw0...)
+                const dataUrl = reader.result; 
+
+                // プレフィックス (data:image/png;base64,) を除去して純粋なBase64文字列を取得
+                const base64Content = dataUrl.split(',')[1];
+                
+                if (!base64Content) {
+                    showMessage('Base64エンコードに失敗しました。', 'error');
+                    uploadButton.disabled = false;
+                    uploadButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                    return;
+                }
 
                 // ヘッダーの設定
                 const headers = {
-                    'Content-Type': 'application/octet-stream',
+                    // Base64文字列を送信するため、Content-Typeをtext/plainに変更
+                    'Content-Type': 'text/plain', 
                     'REPOFILEPASS': repoFilePath,
                 };
 
-                // コミットメッセージが入力されていれば追加
                 if (commitMessage) {
                     headers['COMMITMESSAGE'] = commitMessage;
                 }
 
                 try {
-                    showMessage('サーバーにファイルを送信中...', 'loading');
+                    showMessage('サーバーにBase64文字列を送信中...', 'loading');
                     
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: headers,
-                        body: fileData // ファイルのバイナリデータ
+                        body: base64Content // Base64文字列をそのままbodyに渡す
                     });
 
-                    // 応答がJSONであることを期待しますが、エラーコードも確認します
+                    // 応答の処理
                     if (response.ok) {
-                        // 成功レスポンス（ステータス200-299）
                         const text = await response.text();
                         showMessage(`アップロード完了! サーバー応答: ${text.substring(0, 150)}...`, 'success');
                     } else {
-                        // エラーレスポンス
                         const errorText = await response.text();
                         showMessage(`アップロードに失敗しました (ステータス: ${response.status}). サーバー応答: ${errorText.substring(0, 150)}...`, 'error');
                     }
 
                 } catch (error) {
-                    // ネットワークエラーなど
                     console.error('Fetch error:', error);
-                    showMessage(`ネットワークエラーが発生しました: ${error.message}`, 'error');
+                    showMessage(`ネットワークエラーが発生しました: ${error.message || '詳細不明のエラー (ログ参照)'}`, 'error');
                 } finally {
-                    // 終了処理
                     uploadButton.disabled = false;
                     uploadButton.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
@@ -178,11 +176,10 @@
                 uploadButton.classList.remove('opacity-50', 'cursor-not-allowed');
             };
 
-            // ファイルをArrayBufferとして読み込みます（バイナリPOSTのため）
-            reader.readAsArrayBuffer(file);
+            // 💡 Base64としてファイルを読み込む
+            reader.readAsDataURL(file);
         }
 
-        // フォームにイベントリスナーをセット
         uploadForm.addEventListener('submit', uploadFile);
 
     </script>

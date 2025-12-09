@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="カカオマメ (Gemini programming隊)">
+    <meta name="description" content="英検1級保持者向けの超難解英文法クイズ。世界一難しい文法構造に挑戦！">
+    <meta name="keywords" content="難解文法, 英語クイズ, 英検1級, 倒置, 関係代名詞, 複雑構文, 暗号">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="robots" content="noindex, nofollow">
+
+    <link rel="icon" href="https://kakaomames.github.io/rei/logo.png" type="image/png">
+    <title>🏆 究極の難解英文法ミッション (20 Question Challenge)</title>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            width: 100%;
+        }
+        h1 {
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+        h2 {
+            color: #ff6347;
+            margin-top: 25px;
+        }
+        .question-box {
+            background-color: #ffe0b2; /* 薄いオレンジ */
+            border: 2px solid #ff9800;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            line-height: 1.6;
+        }
+        .answer-box {
+            background-color: #e0f7fa; /* 薄いシアン */
+            border: 2px solid #00bcd4;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none; /* 初期は非表示 */
+        }
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .grammar-note {
+            margin-top: 15px;
+            padding: 10px;
+            border-left: 5px solid #007bff;
+            background-color: #e3f2fd;
+        }
+        #final-mission {
+            margin-top: 50px;
+            padding: 30px;
+            background-color: #fce4ec; /* ピンク */
+            border: 3px dashed #e91e63;
+            border-radius: 12px;
+            text-align: center;
+        }
+        #final-mission input[type="text"] {
+            padding: 10px;
+            margin: 15px 0;
+            width: 80%;
+            max-width: 500px;
+            border: 2px solid #e91e63;
+            border-radius: 5px;
+            font-size: 1.1em;
+            text-transform: uppercase; /* 大文字で入力 */
+        }
+        #final-mission button {
+            background-color: #e91e63;
+        }
+        #final-mission button:hover {
+            background-color: #d81b60;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥇 究極の難解英文法ミッション！ (全20問)</h1>
+        <p>親愛なる英検1級保持者へ！全20問を解き、各問題の**「簡単な意味」の最初の単語の頭文字**を順番に並べて、隊長からの秘密のメッセージを解読してください！</p>
+        <h3> 例:Having meticulously deciphered the complexities inherent in the English lexicon, an accomplishment in and of itself, your demonstrated aptitude—lest we forget the arduous nature of linguistic acquisition—is nothing short of phenomenal; consequently, had we doubted your potential for such prodigious comprehension, that skepticism would now be thoroughly obviated. </h3><br>
+        <h3> ↘️:英語が読めています！すごいです(英語という言語に内在する複雑さを注意深く解読したこと（それ自体が一つの功績ですが）により示されたあなたの能力は、—言語習得の困難さを考慮すると— まさに驚異的です。その結果、もし私たちがあなたのそのような驚異的な理解力の可能性を疑っていたとしたら、その懐疑心は今や完全に払拭されていることでしょう。) </h3><br>
+
+        <h2>ミッション 1:</h2>
+        <div class="question-box"><p><strong>英文:</strong> Not merely has your performance been laudable, but rather, by the consensus of all relevant arbiters, it is demonstrably of great merit.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(1)">🔑 答え 1 を見る</button></div>
+        <div class="answer-box" id="answer-1"><p><strong>簡単な意味:</strong> **G**reat. (すばらしい。)</p><div class="grammar-note">難解ポイント: 否定語の倒置、古風な接続詞。</div></div>
+
+        <h2>ミッション 2:</h2>
+        <div class="question-box"><p><strong>英文:</strong> No sooner had the directive been issued than all personnel—who were prepared for any exigency—commenced the complex job, the magnitude of which was undeniable.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(2)">🔑 答え 2 を見る</button></div>
+        <div class="answer-box" id="answer-2"><p><strong>簡単な意味:</strong> **J**ob. (仕事/任務。)</p><div class="grammar-note">難解ポイント: 時制の一致を伴う倒置、二重の非制限関係詞。</div></div>
+
+        <h2>ミッション 3:</h2>
+        <div class="question-box"><p><strong>英文:</strong> The entirety of the critical analysis, having been exhaustively reviewed, was finally submitted in the proper folder, where it was immediately archived.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(3)">🔑 答え 3 を見る</button></div>
+        <div class="answer-box" id="answer-3"><p><strong>簡単な意味:</strong> **I**n. (～の中に。)</p><div class="grammar-note">難解ポイント: 完了形分詞構文、前置詞句の強調。</div></div>
+
+        <h2>ミッション 4:</h2>
+        <div class="question-box"><p><strong>英文:</strong> It is only by the most arduous efforts that one may truly master English, which linguistic feat remains unattainable by most who attempt it.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(4)">🔑 答え 4 を見る</button></div>
+        <div class="answer-box" id="answer-4"><p><strong>簡単な意味:</strong> **E**nglish. (英語。)</p><div class="grammar-note">難解ポイント: 強調構文 (It is only by... that...)、非制限関係詞句。</div></div>
+
+        <h2>ミッション 5:</h2>
+        <div class="question-box"><p><strong>英文:</strong> Seldom, if ever, has such a high level of proficiency been exhibited by any candidate who has sat for this exceptionally difficult examination.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(5)">🔑 答え 5 を見る</button></div>
+        <div class="answer-box" id="answer-5"><p><strong>簡単な意味:</strong> **P**roficiency. (熟達/習熟。)</p><div class="grammar-note">難解ポイント: 倒置構文 (Seldom has...)、挿入句。</div></div>
+
+        <h2>ミッション 6:</h2>
+        <div class="question-box"><p><strong>英文:</strong> Were the testing procedure to be modified, we would deem it necessary, which condition, however, has not yet manifested.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(6)">🔑 答え 6 を見る</button></div>
+        <div class="answer-box" id="answer-6"><p><strong>簡単な意味:</strong> **T**esting. (試験/検査。)</p><div class="grammar-note">難解ポイント: Ifの省略を伴う仮定法未来、非制限関係詞句。</div></div>
+
+        <h2>ミッション 7:</h2>
+        <div class="question-box"><p><strong>英文:</strong> No fewer than three separate analysts concurred on the finding that the resources utilized were, in fact, entirely your purview.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(7)">🔑 答え 7 を見る</button></div>
+        <div class="answer-box" id="answer-7"><p><strong>簡単な意味:</strong> **Y**our. (あなたの。)</p><div class="grammar-note">難解ポイント: 複雑な比較表現、挿入句、専門的語彙。</div></div>
+
+        <h2>ミッション 8:</h2>
+        <div class="question-box"><p><strong>英文:</strong> The individual, who had been my childhood companion—a bond which transcended mere acquaintance—has proven himself to be a steadfast friend.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(8)">🔑 答え 8 を見る</button></div>
+        <div class="answer-box" id="answer-8"><p><strong>簡単な意味:</strong> **F**riend. (友人。)</p><div class="grammar-note">難解ポイント: 二重の非制限関係詞の多重挿入。</div></div>
+
+        <h2>ミッション 9:</h2>
+        <div class="question-box"><p><strong>英文:</strong> Done, though it was with great difficulty, was the task which we had previously supposed to be utterly unfeasible.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(9)">🔑 答え 9 を見る</button></div>
+        <div class="answer-box" id="answer-9"><p><strong>簡単な意味:</strong> **D**one. (完了。)</p><div class="grammar-note">難解ポイント: 強調のための文頭への分詞移動と倒置。</div></div>
+
+        <h2>ミッション 10:</h2>
+        <div class="question-box"><p><strong>英文:</strong> Were it not for the detailed cartography, which we meticulously examined, we would not have ascertained that the solution was, in fact, demonstrably here.</p></div>
+        <div class="button-container"><button onclick="revealAnswer(10)">🔑 答え 10 を見る</button></div>
+        <div class="answer-box" id="answer-10"><p><strong>簡単な意味:</strong> **H**ere. (ここに。)</p><div class="grammar-note">難解ポイント: 仮定法過去完了の倒置、非制限関係詞の挿入。</div></div>
+
+        <hr style="margin: 40px 0;">
+
+        <h2>ミッション 11:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Such was the overwhelming consensus among all pertinent stakeholders that the documentation must be disseminated to the regulatory body, lest it incur punitive action.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(11)">🔑 答え 11 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-11">
+            <p><strong>簡単な意味:</strong> **T**o. (～へ。)</p>
+            <div class="grammar-note">難解ポイント: Suchの倒置構文 (Such was the consensus that...)、目的を表す古風な接続詞 (lest it incur...)。</div>
+        </div>
+
+        <h2>ミッション 12:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> He is, as I often recall him to be, the only person to whom the confidential memorandum was specifically addressed, namely me.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(12)">🔑 答え 12 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-12">
+            <p><strong>簡単な意味:</strong> **M**e. (私に。)</p>
+            <div class="grammar-note">難解ポイント: 挿入句 (as I often recall him to be)、前置詞+関係代名詞 (to whom)、副詞 (namely) による強調。</div>
+        </div>
+
+        <h2>ミッション 13:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> There is nothing, I submit, that remains to be explored which has not already been considered by every qualified academician.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(13)">🔑 答え 13 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-13">
+            <p><strong>簡単な意味:</strong> **E**very. (すべての。)</p>
+            <div class="grammar-note">難解ポイント: 挿入句 (I submit)、複雑な関係詞の多重修飾 (nothing... which has not already been considered by every...)。</div>
+        </div>
+
+        <h2>ミッション 14:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Were it only a simple matter of recalling trivial facts, the designated quiz would present no impediment whatsoever, which, to our chagrin, is certainly not the case.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(14)">🔑 答え 14 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-14">
+            <p><strong>簡単な意味:</strong> **Q**uiz. (クイズ。)</p>
+            <div class="grammar-note">難解ポイント: 仮定法における倒置 (Were it only...)、非制限関係詞句 (which, to our chagrin...)。</div>
+        </div>
+
+        <h2>ミッション 15:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Not until the final bell, which signaled the cessation of the examination, did I realize that the answers had been inscribed on the reverse of the sheet.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(15)">🔑 答え 15 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-15">
+            <p><strong>簡単な意味:</strong> **I**. (私は。)</p>
+            <div class="grammar-note">難解ポイント: 否定語を伴う倒置 (Not until... did I realize...)、非制限関係詞の挿入。</div>
+        </div>
+        
+        <h2>ミッション 16:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Little did we understand, before the exhaustive audit was completed, that the figures were, in fact, very much under the prescribed threshold.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(16)">🔑 答え 16 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-16">
+            <p><strong>簡単な意味:</strong> **V**ery. (とても/非常に。)</p>
+            <div class="grammar-note">難解ポイント: 否定的な意味を持つ副詞の倒置 (Little did we understand...)、挿入句。</div>
+        </div>
+
+        <h2>ミッション 17:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Under no circumstances, where an unforeseen contingency obtains, may one disregard the provision that the eventual outcome be deemed inherently lucky.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(17)">🔑 答え 17 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-17">
+            <p><strong>簡単な意味:</strong> **L**ucky. (幸運な。)</p>
+            <div class="grammar-note">難解ポイント: 否定語句の倒置 (Under no circumstances may...)、従属節内の古風な表現 (an unforeseen contingency obtains)、原形不定詞の使用 (be deemed)。</div>
+        </div>
+        
+        <h2>ミッション 18:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Having achieved what was initially considered unattainable, the ultimate success, which culminated years of concerted effort, was finally declared.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(18)">🔑 答え 18 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-18">
+            <p><strong>簡単な意味:</strong> **S**uccess. (成功。)</p>
+            <div class="grammar-note">難解ポイント: 完了分詞構文、挿入された非制限関係詞句 (which culminated years of concerted effort)。</div>
+        </div>
+
+        <h2>ミッション 19:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> It is after the final deliberation, not before it, that the decisive determination, which affects all future policy, will be rendered.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(19)">🔑 答え 19 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-19">
+            <p><strong>簡単な意味:</strong> **F**inal. (最終の。)</p>
+            <div class="grammar-note">難解ポイント: 分裂文（It is after... that...）、二重の否定と挿入句。</div>
+        </div>
+        
+        <h2>ミッション 20:</h2>
+        <div class="question-box">
+            <p><strong>英文:</strong> Only upon the complete and absolute dissolution of the previous accord, the full terms of which were never disclosed, may the new stipulations be enacted.</p>
+        </div>
+        <div class="button-container">
+            <button onclick="revealAnswer(20)">🔑 答え 20 を見る</button>
+        </div>
+        <div class="answer-box" id="answer-20">
+            <p><strong>簡単な意味:</strong> **C**omplete. (完全な。)</p>
+            <div class="grammar-note">難解ポイント: 否定的な前置詞句を伴う倒置 (Only upon... may the new stipulations...)、所有格関係代名詞 (the full terms of which)。</div>
+        </div>
+        
+        
+        <hr style="margin: 50px 0;">
+
+        <div id="final-mission">
+            <h2>🚨 最終ミッション: 秘密の暗号を解読せよ！ (全18文字)</h2>
+            <p>ミッション1〜18の**「簡単な意味」の最初の単語の頭文字**を順番通りに並べて、**全18文字**のメッセージを完成させてください！</p>
+            
+            <p style="font-size: 1.5em; font-weight: bold;">(正しい暗号: G J I E P T Y F D H T M E Q I V L S)</p>
+            
+            <input type="text" id="code-input" placeholder="ここに暗号(18文字)を入力">
+            <button onclick="submitCode()">🔒 暗号を提出</button>
+            <p id="feedback" style="margin-top: 15px; color: #e91e63; font-weight: bold;"></p>
+        </div>
+        
+    </div>
+
+    <script>
+        // 答えを表示/非表示にするJavaScript関数
+        function revealAnswer(questionNumber) {
+            var answerBox = document.getElementById('answer-' + questionNumber);
+            var button = document.querySelector('.button-container:nth-of-type(' + (questionNumber + 1) + ') button'); // nth-of-typeはh2からカウント
+            if (answerBox.style.display === 'none' || answerBox.style.display === '') {
+                answerBox.style.display = 'block';
+                button.textContent = '👆 解説を隠す';
+            } else {
+                answerBox.style.display = 'none';
+                button.textContent = '🔑 答え ' + questionNumber + ' を見る';
+            }
+        }
+
+        // 暗号提出処理
+        function submitCode() {
+            // 最終正解 (18文字): Great Job In English Proficiency Testing Your Friend Done Here To Me Every Quiz Is Very Lucky Success
+            const correctCode = "GJIEPTYFDHTMEQIVLS"; 
+            
+            const inputElement = document.getElementById('code-input');
+            const feedbackElement = document.getElementById('feedback');
+            const submittedCode = inputElement.value.toUpperCase().trim();
+
+            feedbackElement.textContent = ""; // リセット
+
+            if (submittedCode === correctCode) {
+                // 正解時の処理
+                feedbackElement.style.color = 'green';
+                feedbackElement.textContent = "🎉 究極の暗号解読に成功しました！おめでとうございます！";
+                
+                // クッキー設定とリダイレクト (遊び感覚の演出)
+                // 実際のサーバーがないため、ここではシミュレーションのメッセージを表示
+                setTimeout(() => {
+                    feedbackElement.textContent = "✅ クッキーを設定しました。/homeへリダイレクトします...";
+                    // window.location.href = "/home"; // 実際の動作
+                }, 2000);
+
+            } else if (submittedCode.length === correctCode.length) {
+                // 文字数が正しいが内容が違う場合
+                 feedbackElement.style.color = '#e91e63';
+                feedbackElement.textContent = "❌ 残念！暗号は18文字ですが、どこか間違っています。もう一度頭文字を確認してください！";
+            }
+            else if (submittedCode.length > 0) {
+                // 文字数が違う場合
+                 feedbackElement.style.color = '#e91e63';
+                feedbackElement.textContent = "❌ 文字数が違います。暗号は全18文字です！";
+            } 
+            else {
+                feedbackElement.textContent = "暗号を入力してください。";
+            }
+        }
+    </script>
+</body>
+</html>

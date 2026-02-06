@@ -27,11 +27,20 @@ a.y or a.e.y ok?     こうやって変えていかないと！
 </style>
 
 <div class="box">
-    <div class="frame">┏━━━━━━━┓</div>
-    <div class="frame">┃       ┃</div>
-    <div class="frame">┃<span id="ya"></span>┃</div>
-    <div class="frame">┃       ┃</div>
-    <div class="frame">┗━━━━━━━┛</div>
+<div class="frame">┏━━━━━━━┓</div>
+<div class="frame">┃       ┃</div>
+<div class="frame" id="ya">┃ ━       ┃</div> <div class="frame">┃       ┃</div>
+<div class="frame">┗━━━━━━━┛</div>
+
+<script>
+    const steps = [
+        "┃ ━       ┃",
+        "┃ ━ ━━    ┃",
+        "┃ ━ ━━ ━  ┃",
+        "┃ ━ ━━ ━ ▶┃"
+    ];
+    // これなら「┃」との距離が常に固定されるから絶対にズレない！
+</script>
 </div>
 
 <script>
@@ -41,12 +50,6 @@ function missionLog(t, m) {
 
 // アニメーションのステップ
 // 全角スペース「　」を使って、全角記号と幅を合わせるぞ！
-const steps = [
-        "━      ", // ━(2) + 半角5 = 7
-        "━ ━    ", // ━(2) + 半1 + ━(2) + 半2 = 7
-        "━ ━━  ", // ━(2) + 半1 + ━(2) + 半1 + ━(2) = 8 (※これだとズレる可能性)
-        "━━━▶"      // 調整が必要な場合はここを微調整だ！
-    ];
 
 let stepIndex = 0;
 

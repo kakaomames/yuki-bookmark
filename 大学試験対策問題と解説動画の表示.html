@@ -6,6 +6,11 @@
     <title>大学試験対策問題と解説動画の表示</title>
     <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
     
+    <meta name="description" content="Gemini programming隊 特製プレイヤー：oisogiスキャン実装済">
+    <meta property="og:title" content="大学試験対策問題と解説動画の表示">
+    <meta property="og:image" content="https://kakaomames.github.io/rei/logo.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
     <style>
         body { background-color: #0f0f0f; color: #f1f1f1; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); max-width: 850px; width: 100%; box-sizing: border-box; }
@@ -21,7 +26,6 @@
         .yt-container { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; }
         video { width: 100%; height: 100%; display: block; }
 
-        /* コントロール UI */
         .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 10px; box-sizing: border-box; opacity: 0; transition: 0.3s; }
         .yt-container:hover .yt-controls { opacity: 1; }
         
@@ -36,7 +40,7 @@
         #volume-slider { width: 0; transition: 0.2s; cursor: pointer; accent-color: #fff; }
         .volume-container:hover #volume-slider { width: 60px; }
         
-        .yt-menu { position: absolute; bottom: 60px; right: 10px; background: rgba(28,28,28,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; }
+        .yt-menu { position: absolute; bottom: 60px; right: 10px; background: rgba(28,28,28,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; max-height: 200px; overflow-y: auto; }
         .yt-menu.show { display: block; }
         .yt-menu li { padding: 8px 15px; cursor: pointer; font-size: 14px; color: #fff; border-bottom: 1px solid #333; }
         .yt-menu li:hover { background: rgba(255,255,255,0.1); }
@@ -103,6 +107,8 @@ const statusMsg = document.getElementById('status-msg');
 const qualityMenu = document.getElementById('quality-menu');
 const apiStatus = document.getElementById('api-status');
 
+function missionLog(t, m) { console.log(`[${t}] ${m}`); }
+
 function extractVideoId(url) {
     if(!url) return null;
     const match = url.match(/(?:v=|\/embed\/|\/watch\?v=|\/v\/|\/e\/|youtu\.be\/|project\/|https:\/\/www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/);
@@ -114,35 +120,41 @@ document.getElementById('launch-btn').onclick = () => {
     if(id) startAdventure(id);
 };
 
-// --- 二段階スキャン・システム ---
 async function startAdventure(videoId) {
+    missionLog("SYSTEM", "ターゲット補足、スキャン開始！");
     playerSection.style.display = 'none';
     loadingArea.style.display = 'block';
     statusMsg.innerText = `📡 第1段階：oisogiスキャン中...`;
 
     try {
-        // 1回目：oisogi (itag 18) で最速再生
+        // 第1段階：爆速再生用
         const resFast = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
         const dataFast = await resFast.json();
-        
         if(!dataFast.streams.video.length) throw new Error("ストリームなし");
 
         loadingArea.style.display = 'none';
         playerSection.style.display = 'block';
         
-        // とりあえず再生開始
         video.src = dataFast.streams.video[0].url;
         audioTrack.src = dataFast.streams.audio[0] ? dataFast.streams.audio[0].url : "";
         video.load();
         audioTrack.load();
+        setupQualityMenu(dataFast.streams.video); // 暫定メニュー
 
-        // 2回目：通常fetch (高画質リスト取得)
+        // 第2段階：全画質リストを裏で取得
         apiStatus.innerText = "🔍 第2段階：全画質リストを裏で取得中...";
         fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`)
             .then(res => res.json())
             .then(dataFull => {
-                setupQualityMenu(dataFull.streams.video);
-                apiStatus.innerText = "✅ 全画質スキャン完了。いつでも変更可能です！";
+                if(dataFull.streams && dataFull.streams.video) {
+                    setupQualityMenu(dataFull.streams.video); // 本命メニューに更新
+                    apiStatus.innerText = "✅ 全画質スキャン完了。変更可能です！";
+                    missionLog("DATA", "全地図データの同期成功！");
+                }
+            })
+            .catch(e => {
+                apiStatus.innerText = "⚠️ 詳細データの取得に失敗しました";
+                missionLog("ERROR", "第2段階失敗");
             });
 
     } catch (e) {
@@ -150,7 +162,6 @@ async function startAdventure(videoId) {
     }
 }
 
-// 同期制御
 playBtn.onclick = () => {
     if(video.paused) { video.play(); audioTrack.play(); playBtn.textContent = '⏸'; }
     else { video.pause(); audioTrack.pause(); playBtn.textContent = '▶'; }
@@ -162,14 +173,18 @@ volSlider.oninput = (e) => {
 };
 
 progressArea.onclick = (e) => {
-    const target = (e.clientX - progressArea.getBoundingClientRect().left) / progressArea.offsetWidth;
+    const rect = progressArea.getBoundingClientRect();
+    const target = (e.clientX - rect.left) / rect.width;
     video.currentTime = audioTrack.currentTime = target * video.duration;
 };
 
 video.ontimeupdate = () => {
     progressBar.style.width = (video.currentTime / video.duration) * 100 + '%';
     timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
-    if (Math.abs(video.currentTime - audioTrack.currentTime) > 0.2) audioTrack.currentTime = video.currentTime;
+    // 同期補正
+    if (Math.abs(video.currentTime - audioTrack.currentTime) > 0.3) {
+        audioTrack.currentTime = video.currentTime;
+    }
 };
 
 function formatTime(s) {
@@ -183,30 +198,33 @@ function setupQualityMenu(streams) {
     qualityMenu.innerHTML = '';
     streams.forEach(v => {
         const li = document.createElement('li');
-        li.textContent = `${v.itag}p ${v.qualityLabel || ''}`;
+        li.textContent = v.qualityLabel ? v.qualityLabel : `${v.itag}p`;
         li.onclick = () => {
             const now = video.currentTime;
-            const playing = !video.paused;
+            const isPlaying = !video.paused;
             video.src = v.url;
             video.currentTime = now;
-            if(playing) { video.play(); audioTrack.play(); }
+            if(isPlaying) { video.play(); audioTrack.play(); }
             qualityMenu.classList.remove('show');
+            missionLog("ACTION", `画質変更: ${li.textContent}`);
         };
         qualityMenu.appendChild(li);
     });
 }
 
-document.getElementById('settings-btn').onclick = () => qualityMenu.classList.toggle('show');
+document.getElementById('settings-btn').onclick = (e) => {
+    e.stopPropagation();
+    qualityMenu.classList.toggle('show');
+};
 
-// 【復活】動画拡大（フルスクリーン）
+document.addEventListener('click', () => qualityMenu.classList.remove('show'));
+
 document.getElementById('fullscreen-btn').onclick = () => {
     const box = document.getElementById('yt-player-box');
     if (box.requestFullscreen) box.requestFullscreen();
     else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
-    else if (box.msRequestFullscreen) box.msRequestFullscreen();
 };
 
-// パラメータ起動
 (function() {
     const v = new URLSearchParams(window.location.search).get('v');
     if(v) { document.getElementById('youtubeLink').value = v; startAdventure(v); }

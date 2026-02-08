@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>大学試験対策問題と解説動画の表示</title>
+    <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
+    <style>
+        body { background: #0f0f0f; color: white; font-family: Roboto, Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .yt-container { position: relative; width: 90%; max-width: 1000px; background: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        video { width: 100%; display: block; }
+        
+        /* YouTube風コントロール */
+        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 10px; box-sizing: border-box; opacity: 0; transition: opacity 0.2s; }
+        .yt-container:hover .yt-controls { opacity: 1; }
+        
+        .progress-area { height: 4px; background: rgba(255,255,255,0.2); margin-bottom: 10px; cursor: pointer; position: relative; }
+        .progress-bar { height: 100%; background: #f00; width: 0%; }
+        
+        .bottom-controls { display: flex; align-items: center; justify-content: space-between; }
+        .left-controls, .right-controls { display: flex; align-items: center; gap: 15px; }
+        
+        button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
+        
+        /* 音量スライダー */
+        .volume-container { display: flex; align-items: center; gap: 5px; }
+        #volume-slider { width: 0; transition: width 0.2s; cursor: pointer; accent-color: #fff; }
+        .volume-container:hover #volume-slider { width: 60px; }
+        
+        .yt-menu { position: absolute; bottom: 50px; right: 10px; background: rgba(28,28,28,0.9); border-radius: 8px; padding: 10px; list-style: none; display: none; }
+        .yt-menu.show { display: block; }
+        .yt-menu li { padding: 8px 12px; cursor: pointer; font-size: 14px; }
+        .yt-menu li:hover { background: rgba(255,255,255,0.1); }
+    </style>
+</head>
+<body>
+
+<div class="yt-container">
+    <video id="main-video" playsinline></video>
+    
+    <div class="yt-controls">
+        <div class="progress-area" id="progress-area"><div class="progress-bar" id="progress-bar"></div></div>
+        
+        <div class="bottom-controls">
+            <div class="left-controls">
+                <button id="play-pause">▶</button>
+                <div class="volume-container">
+                    <button id="mute-btn">🔊</button>
+                    <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="1">
+                </div>
+                <span id="time-display">0:00 / 0:00</span>
+            </div>
+            
+            <div class="right-controls">
+                <button id="settings-btn">⚙️</button>
+                <button id="fullscreen-btn">🔳</button>
+            </div>
+        </div>
+    </div>
+    
+    <ul id="quality-menu" class="yt-menu"></ul>
+</div>
+
+<script>
+let audioTrack = new Audio();
+const video = document.getElementById('main-video');
+const playBtn = document.getElementById('play-pause');
+const volSlider = document.getElementById('volume-slider');
+const progressArea = document.getElementById('progress-area');
+const progressBar = document.getElementById('progress-bar');
+
+async function init(videoId) {
+    const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`);
+    const data = await res.json();
+    
+    // 初期セット (最高画質 & 音声)
+    video.src = data.streams.video[0].url;
+    audioTrack.src = data.streams.audio[0].url;
+    
+    // 画質メニュー作成
+    const menu = document.getElementById('quality-menu');
+    data.streams.video.forEach(v => {
+        const li = document.createElement('li');
+        li.textContent = `${v.itag}p`;
+        li.onclick = () => {
+            const time = video.currentTime;
+            video.src = v.url;
+            video.currentTime = time;
+            if(!video.paused) video.play();
+            menu.classList.remove('show');
+        };
+        menu.appendChild(li);
+    });
+}
+
+// --- 同期コアシステム ---
+playBtn.onclick = () => {
+    if(video.paused) { video.play(); audioTrack.play(); playBtn.textContent = '⏸'; }
+    else { video.pause(); audioTrack.pause(); playBtn.textContent = '▶'; }
+};
+
+// 【音量調整】ここが隊員のこだわりポイント！
+volSlider.oninput = (e) => {
+    const vol = e.target.value;
+    video.volume = vol;      // 映像（一応）
+    audioTrack.volume = vol; // 本命の音
+    document.getElementById('mute-btn').textContent = vol == 0 ? '🔇' : '🔊';
+};
+
+video.ontimeupdate = () => {
+    const p = (video.currentTime / video.duration) * 100;
+    progressBar.style.width = p + '%';
+};
+
+// シーク（飛ばし見）同期
+progressArea.onclick = (e) => {
+    const rect = progressArea.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    video.currentTime = pos * video.duration;
+    audioTrack.currentTime = video.currentTime;
+};
+
+document.getElementById('settings-btn').onclick = () => document.getElementById('quality-menu').classList.toggle('show');
+
+// 起動！
+init("b2mX9Aj4wFY");
+</script>
+</body>
+</html>

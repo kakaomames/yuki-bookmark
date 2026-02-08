@@ -7,135 +7,55 @@
     <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
     
     <style>
-        body { 
-            background-color: #0f0f0f; 
-            color: #f1f1f1; 
-            font-family: 'Roboto', Arial, sans-serif; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            min-height: 100vh; 
-            margin: 0; 
-            padding: 20px; 
-        }
+        body { background-color: #0f0f0f; color: #f1f1f1; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); max-width: 850px; width: 100%; box-sizing: border-box; }
+        h1, h2 { color: #ff0000; text-align: center; }
+        h1 a { color: #ff0000; text-decoration: none; font-size: 0.8em; }
         
-        .container { 
-            background-color: #1a1a1a; 
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); 
-            max-width: 900px; 
-            width: 100%; 
-            box-sizing: border-box; 
-        }
-        
-        h2 { color: #fff; text-align: center; font-size: 1.2em; margin-bottom: 20px; }
-        
-        .form-group { margin-bottom: 15px; display: flex; gap: 10px; }
-        input[type="text"] { 
-            flex-grow: 1;
-            padding: 10px; 
-            border: 1px solid #333; 
-            background: #000;
-            color: #fff;
-            border-radius: 4px; 
-            font-size: 1em; 
-        }
-        
-        button#launch-btn { 
-            background-color: #f00; 
-            color: white; 
-            padding: 10px 20px; 
-            border: none; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold; 
-        }
+        .form-group { margin-bottom: 20px; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #333; background: #000; color: #fff; border-radius: 6px; box-sizing: border-box; }
+        button#launch-btn { background-color: #ff0000; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; font-weight: bold; width: 100%; transition: 0.3s; }
+        button#launch-btn:hover { background-color: #cc0000; }
 
-        #player-section { display: none; width: 100%; margin-top: 20px; }
-        
-        /* プレイヤー外枠 */
-        .yt-container { 
-            position: relative; 
-            background: #000; 
-            width: 100%;
-            aspect-ratio: 16 / 9; 
-            overflow: hidden; 
-        }
-        
+        #player-section { display: none; width: 100%; margin-top: 30px; }
+        .yt-container { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; }
         video { width: 100%; height: 100%; display: block; }
 
         /* コントロール UI */
-        .yt-controls { 
-            position: absolute; 
-            bottom: 0; 
-            width: 100%; 
-            background: linear-gradient(transparent, rgba(0,0,0,0.8)); 
-            padding: 10px; 
-            box-sizing: border-box; 
-            opacity: 0; 
-            transition: opacity 0.3s; 
-            z-index: 5;
-        }
+        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 10px; box-sizing: border-box; opacity: 0; transition: 0.3s; }
         .yt-container:hover .yt-controls { opacity: 1; }
         
-        /* プログレスバー */
-        .progress-area { 
-            height: 4px; 
-            background: rgba(255,255,255,0.3); 
-            margin-bottom: 10px; 
-            cursor: pointer; 
-            position: relative; 
-        }
-        .progress-bar { height: 100%; background: #f00; width: 0%; position: relative; }
+        .progress-area { height: 5px; background: rgba(255,255,255,0.2); margin-bottom: 10px; cursor: pointer; position: relative; }
+        .progress-bar { height: 100%; background: #f00; width: 0%; }
         
         .bottom-controls { display: flex; align-items: center; justify-content: space-between; }
         .left-controls, .right-controls { display: flex; align-items: center; gap: 15px; }
+        .control-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
         
-        .control-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; outline: none; }
-        
-        /* 音量スライダー */
         .volume-container { display: flex; align-items: center; gap: 5px; }
-        #volume-slider { width: 0; transition: width 0.2s; cursor: pointer; accent-color: #f00; }
-        .volume-container:hover #volume-slider { width: 70px; }
+        #volume-slider { width: 0; transition: 0.2s; cursor: pointer; accent-color: #fff; }
+        .volume-container:hover #volume-slider { width: 60px; }
         
-        /* 設定メニュー */
-        .yt-menu { 
-            position: absolute; 
-            bottom: 60px; 
-            right: 10px; 
-            background: rgba(28,28,28,0.9); 
-            border-radius: 8px; 
-            padding: 8px 0; 
-            list-style: none; 
-            display: none; 
-            z-index: 10;
-        }
+        .yt-menu { position: absolute; bottom: 60px; right: 10px; background: rgba(28,28,28,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; }
         .yt-menu.show { display: block; }
-        .yt-menu li { padding: 8px 20px; cursor: pointer; font-size: 14px; color: #fff; }
-        .yt-menu li:hover { background: rgba(255,255,255,0.2); }
+        .yt-menu li { padding: 8px 15px; cursor: pointer; font-size: 14px; color: #fff; border-bottom: 1px solid #333; }
+        .yt-menu li:hover { background: rgba(255,255,255,0.1); }
 
-        #loading-area { display: none; text-align: center; padding: 20px; }
-        .spinner { 
-            width: 30px; height: 30px; 
-            border: 3px solid #333; 
-            border-top: 3px solid #f00; 
-            border-radius: 50%; 
-            animation: spin 1s linear infinite; 
-            margin: 0 auto 10px; 
-        }
+        #loading-area { display: none; margin-top: 20px; text-align: center; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid #ff0000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
     <div class="container">
+        <h1><a href="./y">正規品に戻る(これは試作品です)</a></h1>
         <h2>🚀 Gemini Programming隊 統合プレイヤー</h2>
         
         <div class="form-group">
-            <input type="text" id="youtubeLink" placeholder="動画URLまたはIDを入力..." value="">
-            <button id="launch-btn">スキャン開始</button>
+            <input type="text" id="youtubeLink" placeholder="動画URLまたはIDを入力" value="">
         </div>
+        <button id="launch-btn">探検開始（スキャン実行）</button>
 
         <div id="loading-area">
             <div class="spinner"></div>
@@ -143,14 +63,10 @@
         </div>
 
         <div id="player-section">
-            <div class="yt-container" id="player-container">
+            <div class="yt-container" id="yt-player-box">
                 <video id="main-video" playsinline></video>
-                
                 <div class="yt-controls">
-                    <div class="progress-area" id="progress-area">
-                        <div class="progress-bar" id="progress-bar"></div>
-                    </div>
-                    
+                    <div class="progress-area" id="progress-area"><div class="progress-bar" id="progress-bar"></div></div>
                     <div class="bottom-controls">
                         <div class="left-controls">
                             <button class="control-btn" id="play-pause">▶</button>
@@ -160,7 +76,6 @@
                             </div>
                             <span id="time-display" style="font-size: 13px;">0:00 / 0:00</span>
                         </div>
-                        
                         <div class="right-controls">
                             <button class="control-btn" id="settings-btn">⚙️</button>
                             <button class="control-btn" id="fullscreen-btn">🔳</button>
@@ -169,14 +84,13 @@
                 </div>
                 <ul id="quality-menu" class="yt-menu"></ul>
             </div>
-            <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">※試験対策用：映像・音声同期モード稼働中</p>
+            <p id="api-status" style="font-size: 12px; color: #888; margin-top: 10px; text-align: center;">⚡ oisogiモードで起動完了。詳細データをスキャン中...</p>
         </div>
     </div>
 
 <script>
 let audioTrack = new Audio();
 const video = document.getElementById('main-video');
-const playerContainer = document.getElementById('player-container');
 const playBtn = document.getElementById('play-pause');
 const volSlider = document.getElementById('volume-slider');
 const muteBtn = document.getElementById('mute-btn');
@@ -187,111 +101,89 @@ const loadingArea = document.getElementById('loading-area');
 const playerSection = document.getElementById('player-section');
 const statusMsg = document.getElementById('status-msg');
 const qualityMenu = document.getElementById('quality-menu');
-const fsBtn = document.getElementById('fullscreen-btn');
+const apiStatus = document.getElementById('api-status');
 
-// --- ID抽出 ---
-function extractId(url) {
+function extractVideoId(url) {
     if(!url) return null;
-    if(url.length === 11) return url;
-    const match = url.match(/(?:v=|\/embed\/|\/watch\?v=|\/v\/|\/e\/|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-    return (match && match[1]) ? match[1] : null;
+    const match = url.match(/(?:v=|\/embed\/|\/watch\?v=|\/v\/|\/e\/|youtu\.be\/|project\/|https:\/\/www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/);
+    return (match && match[1]) ? match[1] : (url.length === 11 ? url : null);
 }
 
-// --- ミッション開始 ---
 document.getElementById('launch-btn').onclick = () => {
-    const id = extractId(document.getElementById('youtubeLink').value);
+    const id = extractVideoId(document.getElementById('youtubeLink').value);
     if(id) startAdventure(id);
-    else alert("指揮官、IDかURLを正しく入力してください！");
 };
 
+// --- 二段階スキャン・システム ---
 async function startAdventure(videoId) {
     playerSection.style.display = 'none';
     loadingArea.style.display = 'block';
-    statusMsg.innerText = `📡 ターゲット[${videoId}]を解析中...`;
+    statusMsg.innerText = `📡 第1段階：oisogiスキャン中...`;
 
     try {
-        const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
-        const data = await res.json();
-        if(!data.streams.video.length) throw new Error("ストリーム解析不可");
+        // 1回目：oisogi (itag 18) で最速再生
+        const resFast = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
+        const dataFast = await resFast.json();
+        
+        if(!dataFast.streams.video.length) throw new Error("ストリームなし");
 
         loadingArea.style.display = 'none';
         playerSection.style.display = 'block';
-
-        video.src = data.streams.video[0].url;
-        audioTrack.src = data.streams.audio && data.streams.audio[0] ? data.streams.audio[0].url : "";
         
-        setupQualityMenu(data.streams.video);
+        // とりあえず再生開始
+        video.src = dataFast.streams.video[0].url;
+        audioTrack.src = dataFast.streams.audio[0] ? dataFast.streams.audio[0].url : "";
+        video.load();
+        audioTrack.load();
+
+        // 2回目：通常fetch (高画質リスト取得)
+        apiStatus.innerText = "🔍 第2段階：全画質リストを裏で取得中...";
+        fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`)
+            .then(res => res.json())
+            .then(dataFull => {
+                setupQualityMenu(dataFull.streams.video);
+                apiStatus.innerText = "✅ 全画質スキャン完了。いつでも変更可能です！";
+            });
+
     } catch (e) {
-        statusMsg.innerHTML = `<span style="color:red;">💥 解析失敗: ${e.message}</span>`;
+        statusMsg.innerHTML = `<span style="color:red;">💥 索敵失敗: ${e.message}</span>`;
     }
 }
 
-// --- 同期システム ---
-
-// 再生/停止
+// 同期制御
 playBtn.onclick = () => {
-    if(video.paused) {
-        video.play(); audioTrack.play();
-        playBtn.textContent = '⏸';
-    } else {
-        video.pause(); audioTrack.pause();
-        playBtn.textContent = '▶';
-    }
+    if(video.paused) { video.play(); audioTrack.play(); playBtn.textContent = '⏸'; }
+    else { video.pause(); audioTrack.pause(); playBtn.textContent = '▶'; }
 };
 
-// 音量
 volSlider.oninput = (e) => {
-    const v = e.target.value;
-    video.volume = v;
-    audioTrack.volume = v;
-    muteBtn.textContent = v == 0 ? '🔇' : '🔊';
+    video.volume = audioTrack.volume = e.target.value;
+    muteBtn.textContent = e.target.value == 0 ? '🔇' : '🔊';
 };
 
-// シーク
 progressArea.onclick = (e) => {
-    const rect = progressArea.getBoundingClientRect();
-    const pos = (e.clientX - rect.left) / rect.width;
-    video.currentTime = pos * video.duration;
-    audioTrack.currentTime = video.currentTime;
+    const target = (e.clientX - progressArea.getBoundingClientRect().left) / progressArea.offsetWidth;
+    video.currentTime = audioTrack.currentTime = target * video.duration;
 };
 
-// 進捗更新
 video.ontimeupdate = () => {
-    const p = (video.currentTime / video.duration) * 100;
-    progressBar.style.width = p + '%';
-    
-    // 時間表示
-    timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration || 0)}`;
-
-    // 音声ズレ補正
-    if (Math.abs(video.currentTime - audioTrack.currentTime) > 0.3) {
-        audioTrack.currentTime = video.currentTime;
-    }
+    progressBar.style.width = (video.currentTime / video.duration) * 100 + '%';
+    timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    if (Math.abs(video.currentTime - audioTrack.currentTime) > 0.2) audioTrack.currentTime = video.currentTime;
 };
 
 function formatTime(s) {
+    if(isNaN(s)) return "0:00";
     const m = Math.floor(s / 60);
-    const rs = Math.floor(s % 60);
-    return `${m}:${rs < 10 ? '0' : ''}${rs}`;
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
-// フルスクリーン（拡大）機能！
-fsBtn.onclick = () => {
-    if (!document.fullscreenElement) {
-        playerContainer.requestFullscreen().catch(err => {
-            alert(`拡大失敗: ${err.message}`);
-        });
-    } else {
-        document.exitFullscreen();
-    }
-};
-
-// 画質メニュー
 function setupQualityMenu(streams) {
     qualityMenu.innerHTML = '';
     streams.forEach(v => {
         const li = document.createElement('li');
-        li.textContent = `${v.itag}p`;
+        li.textContent = `${v.itag}p ${v.qualityLabel || ''}`;
         li.onclick = () => {
             const now = video.currentTime;
             const playing = !video.paused;
@@ -303,19 +195,21 @@ function setupQualityMenu(streams) {
         qualityMenu.appendChild(li);
     });
 }
-document.getElementById('settings-btn').onclick = (e) => {
-    e.stopPropagation();
-    qualityMenu.classList.toggle('show');
+
+document.getElementById('settings-btn').onclick = () => qualityMenu.classList.toggle('show');
+
+// 【復活】動画拡大（フルスクリーン）
+document.getElementById('fullscreen-btn').onclick = () => {
+    const box = document.getElementById('yt-player-box');
+    if (box.requestFullscreen) box.requestFullscreen();
+    else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
+    else if (box.msRequestFullscreen) box.msRequestFullscreen();
 };
-document.onclick = () => qualityMenu.classList.remove('show');
 
 // パラメータ起動
 (function() {
     const v = new URLSearchParams(window.location.search).get('v');
-    if(v) {
-        document.getElementById('youtubeLink').value = v;
-        startAdventure(v);
-    }
+    if(v) { document.getElementById('youtubeLink').value = v; startAdventure(v); }
 })();
 </script>
 </body>

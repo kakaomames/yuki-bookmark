@@ -122,7 +122,23 @@ progressArea.onclick = (e) => {
 document.getElementById('settings-btn').onclick = () => document.getElementById('quality-menu').classList.toggle('show');
 
 // 起動！
-init("b2mX9Aj4wFY");
+// --- URLパラメータからIDを取得して起動する指揮官コード ---
+(function() {
+    // 1. 現在のURLからパラメータ（?v=...）を解析
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 2. 変数idsに設定（もし無かったらデフォルトIDをセット）
+    const ids = urlParams.get('v') || "b2mX9Aj4wFY"; 
+    
+    console.log(`📡 ターゲットID補足: ${ids}`);
+    
+    // 3. 指令開始！
+    if (typeof init === "function") {
+        init(ids);
+    } else {
+        console.error("❌ init関数が見つかりません。配置を確認してください！");
+    }
+})();
 </script>
 </body>
 </html>

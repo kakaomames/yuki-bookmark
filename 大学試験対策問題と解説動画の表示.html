@@ -69,7 +69,7 @@ const progressArea = document.getElementById('progress-area');
 const progressBar = document.getElementById('progress-bar');
 
 async function init(videoId) {
-    const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`);
+    const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
     const data = await res.json();
     
     // 初期セット (最高画質 & 音声)

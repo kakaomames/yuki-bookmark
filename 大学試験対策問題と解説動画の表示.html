@@ -162,11 +162,35 @@ document.getElementById('settings-btn').onclick = () => document.getElementById(
         video { width: 100%; height: 100%; display: block; }
 
         /* YouTube風コントロール（前回のコードを統合） */
-        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 10px; opacity: 0; transition: opacity 0.2s; }
+
+
+
+
+        /* YouTube風コントロール */
+        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.7)); padding: 10px; box-sizing: border-box; opacity: 0; transition: opacity 0.2s; }
         .yt-container:hover .yt-controls { opacity: 1; }
-        .progress-area { height: 4px; background: rgba(255,255,255,0.3); margin-bottom: 8px; cursor: pointer; }
+        
+        .progress-area { height: 4px; background: rgba(255,255,255,0.2); margin-bottom: 10px; cursor: pointer; position: relative; }
         .progress-bar { height: 100%; background: #f00; width: 0%; }
-        .bottom-controls { display: flex; justify-content: space-between; align-items: center; color: white; }
+        
+        .bottom-controls { display: flex; align-items: center; justify-content: space-between; }
+        .left-controls, .right-controls { display: flex; align-items: center; gap: 15px; }
+        
+        button { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
+        
+        /* 音量スライダー */
+        .volume-container { display: flex; align-items: center; gap: 5px; }
+        #volume-slider { width: 0; transition: width 0.2s; cursor: pointer; accent-color: #fff; }
+        .volume-container:hover #volume-slider { width: 60px; }
+        
+        .yt-menu { position: absolute; bottom: 50px; right: 10px; background: rgba(28,28,28,0.9); border-radius: 8px; padding: 10px; list-style: none; display: none; }
+        .yt-menu.show { display: block; }
+        .yt-menu li { padding: 8px 12px; cursor: pointer; font-size: 14px; }
+        .yt-menu li:hover { background: rgba(255,255,255,0.1); }
+
+
+
+        
         
         /* スピナー */
         #loading-area { display: none; margin-top: 20px; text-align: center; }

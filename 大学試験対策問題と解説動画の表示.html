@@ -23,19 +23,24 @@
         .yt-container { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid #444; }
         video { width: 100%; height: 100%; }
 
-        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; box-sizing: border-box; opacity: 0; transition: 0.3s; pointer-events: none; }
-        .yt-container:hover .yt-controls { opacity: 1; pointer-events: auto; }
+        /* 画質・設定ボタンを見やすく */
+        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; box-sizing: border-box; opacity: 1; transition: 0.3s; }
         .hidden-ui { display: none !important; }
 
         .progress-area { height: 6px; background: rgba(255,255,255,0.2); margin-bottom: 12px; cursor: pointer; position: relative; }
         .progress-bar { height: 100%; background: #f00; width: 0%; }
         
-        .yt-menu { position: absolute; bottom: 70px; right: 15px; background: rgba(20,20,20,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; cursor: pointer;}
-        .yt-menu li { padding: 5px 10px; transition: 0.2s; }
-        .yt-menu li:hover { background: #444; }
+        .yt-menu { position: absolute; bottom: 60px; right: 15px; background: rgba(30,30,30,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 100; border: 1px solid #ff0000; cursor: pointer; max-height: 200px; overflow-y: auto;}
+        .yt-menu li { padding: 8px 15px; transition: 0.2s; border-bottom: 1px solid #333; }
+        .yt-menu li:hover { background: #ff0000; color: #fff; }
         .yt-menu.show { display: block; }
 
         #log-panel { margin-top: 15px; background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; color: #00ff00; border: 1px solid #333; max-height: 100px; overflow-y: auto; width: 100%; }
+        
+        /* 下部の画質切り替えクイックバー */
+        .quick-quality-bar { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+        .q-btn { background: #333; color: #ccc; border: 1px solid #444; padding: 5px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; }
+        .q-btn:hover { background: #555; }
     </style>
 </head>
 <body>
@@ -56,15 +61,16 @@
                     <div class="progress-area" id="progress-area"><div class="progress-bar" id="progress-bar"></div></div>
                     <div style="display:flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <button id="play-pause" style="background:none; color:#fff; font-size:20px; cursor:pointer;">▶</button>
-                            <span id="time-display" style="margin-left:10px;">0:00 / 0:00</span>
+                            <button id="play-pause" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">▶</button>
+                            <span id="time-display" style="margin-left:10px; font-size: 14px;">0:00 / 0:00</span>
                         </div>
-                        <button id="settings-btn" style="background:none; color:#fff; cursor:pointer;">⚙️ 画質</button>
+                        <button id="settings-btn" style="background:#ff0000; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">⚙ 画質変更</button>
                     </div>
                 </div>
                 <ul id="quality-menu" class="yt-menu"></ul>
             </div>
             
+            <div id="quick-quality" class="quick-quality-bar"></div>
             <div id="log-panel">📡 ログ待機中...</div>
         </div>
     </div>
@@ -74,6 +80,7 @@ let audioTrack = new Audio();
 let isCustomMode = true;
 const video = document.getElementById('main-video');
 const logPanel = document.getElementById('log-panel');
+const quickQualityBar = document.getElementById('quick-quality');
 
 function missionLog(t, m) {
     const entry = `[${t}] ${m}`;
@@ -101,30 +108,41 @@ document.getElementById('mode-toggle-btn').onclick = () => {
 
 function extractVideoId(url) {
     const match = url.match(/(?:v=|\/embed\/|\/watch\?v=|\/v\/|\/e\/|youtu\.be\/|project\/|https:\/\/www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/);
-    const id = (match && match[1]) ? match[1] : (url.length === 11 ? url : null);
-    return id;
+    return (match && match[1]) ? match[1] : (url.length === 11 ? url : null);
 }
 
 async function startAdventure(videoId) {
-    missionLog("SYSTEM", "🚀 探索の準備開始！");
+    missionLog("SYSTEM", "🚀 新たな動画をスキャン中...");
     
-    // 徹底的な初期化
+    // --- 徹底的なリセット ---
     video.pause();
     audioTrack.pause();
+    
+    // 前のソースを完全にクリア（残像・残音防止）
     video.src = "";
     audioTrack.src = "";
-    video.currentTime = 0; // 時間をリセット
+    video.load();
+    audioTrack.load();
+    
+    // 時間を強制的に0に戻す
+    video.currentTime = 0;
     audioTrack.currentTime = 0;
-
+    
     document.getElementById('player-section').style.display = 'block';
+    quickQualityBar.innerHTML = ''; 
 
     try {
+        // oisogiスキャン
         const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
+        if (!res.ok) throw new Error("APIレスポンスエラー");
         const data = await res.json();
         
+        if (!data.streams || !data.streams.video) throw new Error("ストリームが見つかりません");
+
         const vUrl = data.streams.video[0].url;
         const aUrl = data.streams.audio[0].url;
 
+        // 音声と動画のバッファリング同期を狙う
         video.src = vUrl;
         audioTrack.src = aUrl;
         
@@ -134,87 +152,97 @@ async function startAdventure(videoId) {
         setupQualityMenu(data.streams.video);
         missionLog("DATA", "ストリーム展開完了！");
 
-        // メタデータ読み込み完了時に時間を再度合わせる
+        // メタデータロード完了を待って再生
         video.onloadedmetadata = () => {
             video.currentTime = 0;
             audioTrack.currentTime = 0;
-            missionLog("SYSTEM", "シーク位置をリセットしました");
+            missionLog("SYSTEM", "シーク位置を0に強制セット完了");
         };
 
-        video.play().then(() => audioTrack.play()).catch(e => missionLog("WARN", "再生ボタンを押してください"));
+        // 自動再生を試みる
+        const playPromise = video.play();
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                audioTrack.play();
+                document.getElementById('play-pause').innerText = '⏸';
+            }).catch(e => {
+                missionLog("WARN", "再生がブロックされました。ボタンを押してください");
+                document.getElementById('play-pause').innerText = '▶';
+            });
+        }
 
     } catch (e) {
         missionLog("ERROR", `スキャン失敗: ${e.message}`);
     }
 }
 
-// 画質切り替え
+// 画質切り替え（時間維持をより精密に）
 function switchQuality(newUrl) {
     const now = video.currentTime;
     const wasPlaying = !video.paused;
-    missionLog("ACTION", `画質変更: ${now.toFixed(2)}sから再開`);
+    missionLog("ACTION", `画質変更リクエスト: ${now.toFixed(2)}s`);
     
+    video.pause();
     video.src = newUrl;
     video.load();
     
-    video.onloadedmetadata = () => {
+    // メタデータが読み込まれたら元の場所へ飛ばす
+    const onLoaded = () => {
         video.currentTime = now;
-        audioTrack.currentTime = now; // 音声も合わせる
+        audioTrack.currentTime = now;
         if(wasPlaying) {
             video.play();
             audioTrack.play();
         }
-        video.onloadedmetadata = null;
+        video.removeEventListener('loadedmetadata', onLoaded);
     };
+    video.addEventListener('loadedmetadata', onLoaded);
 }
 
-// --- 同期エンジン：イベントベースに集約 ---
+// --- 精密同期エンジン ---
 
-// 1. 基本動作の同期
-video.onplay = () => audioTrack.play();
-video.onpause = () => audioTrack.pause();
+video.onplay = () => { audioTrack.play(); document.getElementById('play-pause').innerText = '⏸'; };
+video.onpause = () => { audioTrack.pause(); document.getElementById('play-pause').innerText = '▶'; };
 video.onratechange = () => audioTrack.playbackRate = video.playbackRate;
 
-// 2. シーク時の同期（ここが重要）
+// シーク（巻き戻り・早送り）時の同期
 video.onseeking = () => {
     audioTrack.currentTime = video.currentTime;
 };
 
 video.onseeked = () => {
     audioTrack.currentTime = video.currentTime;
-    missionLog("ACTION", "同期完了");
+    missionLog("SYNC", "シーク完了・同期");
 };
 
-// 3. 待機状態（バッファリング）の同期
-video.onwaiting = () => audioTrack.pause();
+// バッファリング時の同期
+video.onwaiting = () => {
+    audioTrack.pause();
+    missionLog("DEBUG", "バッファリング中...");
+};
 video.onplaying = () => audioTrack.play();
 
-// 4. 定期的なズレチェック（頻度を下げて、大きなズレのみ補正）
+// ズレ補正（1秒以上の差で修正）
 setInterval(() => {
-    if(!video.paused) {
+    if(!video.paused && video.readyState >= 2) {
         const diff = Math.abs(video.currentTime - audioTrack.currentTime);
-        if(diff > 0.5) { // 0.5秒以上のズレがある場合のみ
+        if(diff > 0.3) { // 0.3秒以上のズレで修正
             audioTrack.currentTime = video.currentTime;
-            missionLog("SYSTEM", `ズレ補正実行: ${diff.toFixed(2)}s`);
         }
     }
-}, 3000); // 3秒に1回チェック
+}, 2000);
 
 // UI操作
 document.getElementById('launch-btn').onclick = () => {
     const val = document.getElementById('youtubeLink').value;
     const id = extractVideoId(val);
     if(id) startAdventure(id);
+    else missionLog("WARN", "有効なURL/IDを入力してください");
 };
 
 document.getElementById('play-pause').onclick = () => {
-    if(video.paused) {
-        video.play();
-        document.getElementById('play-pause').innerText = '⏸';
-    } else {
-        video.pause();
-        document.getElementById('play-pause').innerText = '▶';
-    }
+    if(video.paused) video.play();
+    else video.pause();
 };
 
 video.ontimeupdate = () => {
@@ -233,11 +261,25 @@ function formatTime(s) {
 function setupQualityMenu(streams) {
     const menu = document.getElementById('quality-menu');
     menu.innerHTML = '';
-    streams.forEach(s => {
+    quickQualityBar.innerHTML = '';
+
+    streams.forEach((s, index) => {
+        const label = s.qualityLabel || `${s.height}p`;
+        
+        // メニュー用
         const li = document.createElement('li');
-        li.innerText = s.qualityLabel || "不明";
+        li.innerText = label;
         li.onclick = () => { switchQuality(s.url); menu.classList.remove('show'); };
         menu.appendChild(li);
+
+        // クイックバー用（ボタンを直接配置）
+        if(index < 4) { // 上位4つだけ表示
+            const btn = document.createElement('button');
+            btn.className = 'q-btn';
+            btn.innerText = label;
+            btn.onclick = () => switchQuality(s.url);
+            quickQualityBar.appendChild(btn);
+        }
     });
 }
 
@@ -245,6 +287,9 @@ document.getElementById('settings-btn').onclick = (e) => {
     e.stopPropagation();
     document.getElementById('quality-menu').classList.toggle('show');
 };
+
+// メニュー以外をクリックで閉じる
+window.onclick = () => document.getElementById('quality-menu').classList.remove('show');
 
 document.getElementById('progress-area').onclick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();

@@ -9,43 +9,55 @@
     <meta name="description" content="Gemini programming隊 特製プレイヤー：oisogiスキャン実装済">
     <meta property="og:title" content="大学試験対策問題と解説動画の表示">
     <meta property="og:image" content="https://kakaomames.github.io/rei/logo.png">
+    <meta property="og:type" content="website">
     
     <style>
         body { background-color: #0f0f0f; color: #f1f1f1; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); max-width: 850px; width: 100%; box-sizing: border-box; }
-        h1, h2 { color: #ff0000; text-align: center; }
-        h1 a { color: #ff0000; text-decoration: none; font-size: 0.8em; }
+        .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 25px rgba(0, 0, 0, 0.6); max-width: 850px; width: 100%; box-sizing: border-box; border: 1px solid #333; }
+        h1, h2 { color: #ff0000; text-align: center; margin-bottom: 15px; }
+        h1 a { color: #ff0000; text-decoration: none; font-size: 0.8em; opacity: 0.7; transition: 0.3s; }
+        h1 a:hover { opacity: 1; }
         
         .form-group { margin-bottom: 20px; }
-        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #333; background: #000; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button#launch-btn { background-color: #ff0000; color: white; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 1.1em; font-weight: bold; width: 100%; transition: 0.3s; }
-        button#launch-btn:hover { background-color: #cc0000; }
+        input[type="text"] { width: 100%; padding: 14px; border: 1px solid #444; background: #000; color: #fff; border-radius: 8px; box-sizing: border-box; outline: none; transition: 0.3s; }
+        input[type="text"]:focus { border-color: #ff0000; }
+        button#launch-btn { background-color: #ff0000; color: white; padding: 14px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; width: 100%; transition: 0.3s; box-shadow: 0 4px 10px rgba(255,0,0,0.2); }
+        button#launch-btn:hover { background-color: #cc0000; transform: translateY(-1px); }
 
         #player-section { display: none; width: 100%; margin-top: 30px; }
-        .yt-container { position: relative; background: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16 / 9; }
+        .yt-container { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid #444; }
         video { width: 100%; height: 100%; display: block; }
 
-        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.8)); padding: 10px; box-sizing: border-box; opacity: 0; transition: 0.3s; }
+        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; box-sizing: border-box; opacity: 0; transition: 0.3s; }
         .yt-container:hover .yt-controls { opacity: 1; }
         
-        .progress-area { height: 5px; background: rgba(255,255,255,0.2); margin-bottom: 10px; cursor: pointer; position: relative; }
-        .progress-bar { height: 100%; background: #f00; width: 0%; }
+        .progress-area { height: 6px; background: rgba(255,255,255,0.2); margin-bottom: 12px; cursor: pointer; position: relative; border-radius: 3px; }
+        .progress-bar { height: 100%; background: #f00; width: 0%; border-radius: 3px; }
         
         .bottom-controls { display: flex; align-items: center; justify-content: space-between; }
         .left-controls, .right-controls { display: flex; align-items: center; gap: 15px; }
-        .control-btn { background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 5px; }
+        .control-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; padding: 5px; transition: 0.2s; }
+        .control-btn:hover { color: #ff0000; transform: scale(1.1); }
         
-        .volume-container { display: flex; align-items: center; gap: 5px; }
-        #volume-slider { width: 0; transition: 0.2s; cursor: pointer; accent-color: #fff; }
-        .volume-container:hover #volume-slider { width: 60px; }
+        .volume-container { display: flex; align-items: center; gap: 8px; }
+        #volume-slider { width: 0; transition: 0.3s; cursor: pointer; accent-color: #ff0000; opacity: 0; }
+        .volume-container:hover #volume-slider { width: 70px; opacity: 1; }
         
-        .yt-menu { position: absolute; bottom: 60px; right: 10px; background: rgba(28,28,28,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; max-height: 250px; overflow-y: auto; }
+        .yt-menu { position: absolute; bottom: 70px; right: 15px; background: rgba(20,20,20,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; max-height: 250px; overflow-y: auto; backdrop-filter: blur(5px); }
         .yt-menu.show { display: block; }
-        .yt-menu li { padding: 8px 15px; cursor: pointer; font-size: 14px; color: #fff; border-bottom: 1px solid #333; }
-        .yt-menu li:hover { background: rgba(255,255,255,0.1); }
+        .yt-menu li { padding: 10px 15px; cursor: pointer; font-size: 14px; color: #fff; border-bottom: 1px solid #333; }
+        .yt-menu li:hover { background: #ff0000; }
+
+        /* ログパネルのスタイル */
+        #log-panel { display: none; background: #000; border: 1px solid #444; border-radius: 8px; margin-top: 15px; padding: 12px; height: 140px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 11px; color: #00ff00; text-align: left; }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #1a1a1a; }
+        .tag-SYSTEM { color: #ff00ff; }
+        .tag-ACTION { color: #00ffff; }
+        .tag-DATA { color: #ffff00; }
+        .tag-ERROR { color: #ff4444; }
 
         #loading-area { display: none; margin-top: 20px; text-align: center; }
-        .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top: 4px solid #ff0000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        .spinner { width: 45px; height: 45px; border: 4px solid #333; border-top: 4px solid #ff0000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -77,17 +89,19 @@
                                 <button class="control-btn" id="mute-btn">🔊</button>
                                 <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1">
                             </div>
-                            <span id="time-display" style="font-size: 13px;">0:00 / 0:00</span>
+                            <span id="time-display" style="font-size: 13px; font-variant-numeric: tabular-nums;">0:00 / 0:00</span>
                         </div>
                         <div class="right-controls">
-                            <button class="control-btn" id="settings-btn">⚙️</button>
-                            <button class="control-btn" id="fullscreen-btn">🔳</button>
+                            <button class="control-btn" id="log-toggle-btn" title="ログ表示">📜</button>
+                            <button class="control-btn" id="settings-btn" title="画質設定">⚙️</button>
+                            <button class="control-btn" id="fullscreen-btn" title="全画面表示">🔳</button>
                         </div>
                     </div>
                 </div>
                 <ul id="quality-menu" class="yt-menu"></ul>
             </div>
-            <p id="api-status" style="font-size: 12px; color: #888; margin-top: 10px; text-align: center;">⚡ oisogiモードで起動完了。詳細データをスキャン中...</p>
+            <div id="log-panel"></div>
+            <p id="api-status" style="font-size: 12px; color: #888; margin-top: 10px; text-align: center;">⚡ oisogiモード待機中...</p>
         </div>
     </div>
 
@@ -105,8 +119,17 @@ const playerSection = document.getElementById('player-section');
 const statusMsg = document.getElementById('status-msg');
 const qualityMenu = document.getElementById('quality-menu');
 const apiStatus = document.getElementById('api-status');
+const logPanel = document.getElementById('log-panel');
 
-function missionLog(t, m) { console.log(`[${t}] ${m}`); }
+// 画面上とコンソール両方にログを出す
+function missionLog(t, m) {
+    console.log(`[${t}] ${m}`);
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="tag-${t}">[${t}]</span> ${m}`;
+    logPanel.appendChild(entry);
+    logPanel.scrollTop = logPanel.scrollHeight;
+}
 
 function extractVideoId(url) {
     if(!url) return null;
@@ -119,61 +142,64 @@ document.getElementById('launch-btn').onclick = () => {
     if(id) startAdventure(id);
 };
 
+document.getElementById('log-toggle-btn').onclick = () => {
+    const isShow = logPanel.style.display === 'block';
+    logPanel.style.display = isShow ? 'none' : 'block';
+};
+
 async function startAdventure(videoId) {
-    missionLog("SYSTEM", "ターゲット補足、スキャン開始！");
+    missionLog("SYSTEM", `ターゲット [${videoId}] のスキャンを開始`);
     playerSection.style.display = 'none';
     loadingArea.style.display = 'block';
     statusMsg.innerText = `📡 第1段階：oisogiスキャン中...`;
 
     try {
-        // 第1段階：爆速再生用
         const resFast = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
         const dataFast = await resFast.json();
-        if(!dataFast.streams.video.length) throw new Error("ストリームなし");
+        if(!dataFast.streams.video.length) throw new Error("ストリームデータ空");
+
+        // ★隊員の「itag=18音声固定作戦」
+        const itag18 = dataFast.streams.video.find(s => s.itag === 18) || dataFast.streams.video[0];
+        audioTrack.src = itag18.url;
+        audioTrack.load();
+        missionLog("DATA", `音声同期源(itag:18)をロック完了`);
 
         loadingArea.style.display = 'none';
         playerSection.style.display = 'block';
         
-        // 音声の初期セット
-        audioTrack.src = dataFast.streams.audio[0] ? dataFast.streams.audio[0].url : "";
-        audioTrack.load();
-
-        // 映像のセット (最初の画質)
+        // 映像のセット (最初はoisogiの推奨画質)
         switchQuality(dataFast.streams.video[0].url);
         setupQualityMenu(dataFast.streams.video); 
 
-        // 第2段階：全画質リストを裏で取得
-        apiStatus.innerText = "🔍 第2段階：全画質リストを裏で取得中...";
+        // 第2段階：フルスキャン
+        apiStatus.innerText = "🔍 第2段階：詳細データをスキャン中...";
         fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`)
             .then(res => res.json())
             .then(dataFull => {
                 if(dataFull.streams && dataFull.streams.video) {
                     setupQualityMenu(dataFull.streams.video); 
-                    apiStatus.innerText = "✅ 全画質スキャン完了。変更可能です！";
-                    missionLog("DATA", "全地図データの同期成功！");
+                    apiStatus.innerText = "✅ スキャン完了。最高画質への転送準備よし。";
+                    missionLog("SYSTEM", "全画質データの同期に成功");
                 }
             })
-            .catch(e => {
-                apiStatus.innerText = "⚠️ 詳細データの取得に失敗しました";
-                missionLog("ERROR", "第2段階失敗");
-            });
+            .catch(e => missionLog("ERROR", "詳細スキャン失敗"));
 
     } catch (e) {
         statusMsg.innerHTML = `<span style="color:red;">💥 索敵失敗: ${e.message}</span>`;
+        missionLog("ERROR", e.message);
     }
 }
 
-// ★画質切り替え指令（音声同期コア）
 function switchQuality(videoUrl) {
     const currentTime = video.currentTime;
     const isPlaying = !video.paused;
 
-    missionLog("ACTION", `同期ポイント[${currentTime}]で画質転送開始`);
+    missionLog("ACTION", `画質切替: 同期点 [${currentTime.toFixed(1)}s]`);
 
     video.src = videoUrl;
+    video.muted = true; // ★隊員の指示：映像側の音量は常にミュート！
     video.load();
     
-    // 映像のメタデータ読み込み完了時に時間を合わせる
     video.onloadedmetadata = () => {
         video.currentTime = currentTime;
         audioTrack.currentTime = currentTime;
@@ -189,10 +215,12 @@ playBtn.onclick = () => {
         video.play(); 
         audioTrack.play(); 
         playBtn.textContent = '⏸'; 
+        missionLog("ACTION", "再生開始");
     } else { 
         video.pause(); 
         audioTrack.pause(); 
         playBtn.textContent = '▶'; 
+        missionLog("ACTION", "一時停止");
     }
 };
 
@@ -206,6 +234,7 @@ progressArea.onclick = (e) => {
     const target = (e.clientX - rect.left) / rect.width;
     const targetTime = target * video.duration;
     video.currentTime = audioTrack.currentTime = targetTime;
+    missionLog("ACTION", `シーク: ${targetTime.toFixed(1)}s`);
 };
 
 video.ontimeupdate = () => {
@@ -213,7 +242,7 @@ video.ontimeupdate = () => {
         progressBar.style.width = (video.currentTime / video.duration) * 100 + '%';
         timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
     }
-    // 同期補正（0.3秒以上ズレたら音声側に強制移動）
+    // 同期補正（0.3秒ルール）
     if (Math.abs(video.currentTime - audioTrack.currentTime) > 0.3) {
         audioTrack.currentTime = video.currentTime;
     }
@@ -227,14 +256,13 @@ function formatTime(s) {
 }
 
 function setupQualityMenu(streams) {
-    qualityMenu.innerHTML = '';
+    qualityMenu.innerHTML = '<li style="color:#ff0000; font-weight:bold;">映像信号選択</li>';
     streams.forEach(v => {
         const li = document.createElement('li');
-        li.textContent = v.qualityLabel ? v.qualityLabel : `${v.itag}p`;
+        li.textContent = v.qualityLabel || `${v.itag}p`;
         li.onclick = () => {
             switchQuality(v.url);
             qualityMenu.classList.remove('show');
-            missionLog("ACTION", `画質変更実行: ${li.textContent}`);
         };
         qualityMenu.appendChild(li);
     });

@@ -23,7 +23,6 @@
         .yt-container { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid #444; }
         video { width: 100%; height: 100%; }
 
-        /* 画質・設定ボタンを見やすく */
         .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; box-sizing: border-box; opacity: 1; transition: 0.3s; }
         .hidden-ui { display: none !important; }
 
@@ -37,10 +36,9 @@
 
         #log-panel { margin-top: 15px; background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; color: #00ff00; border: 1px solid #333; max-height: 100px; overflow-y: auto; width: 100%; }
         
-        /* 下部の画質切り替えクイックバー */
-        .quick-quality-bar { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
-        .q-btn { background: #333; color: #ccc; border: 1px solid #444; padding: 5px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; }
-        .q-btn:hover { background: #555; }
+        .quick-quality-bar { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 10px; background: #252525; border-radius: 8px; }
+        .q-btn { background: #ff0000; color: #fff; border: none; padding: 8px 16px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .q-btn:hover { background: #cc0000; transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -64,13 +62,14 @@
                             <button id="play-pause" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">▶</button>
                             <span id="time-display" style="margin-left:10px; font-size: 14px;">0:00 / 0:00</span>
                         </div>
-                        <button id="settings-btn" style="background:#ff0000; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">⚙ 画質変更</button>
+                        <button id="settings-btn" style="background:#ff0000; color:#fff; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-weight:bold;">⚙ 画質</button>
                     </div>
                 </div>
                 <ul id="quality-menu" class="yt-menu"></ul>
             </div>
             
             <div id="quick-quality" class="quick-quality-bar"></div>
+            
             <div id="log-panel">📡 ログ待機中...</div>
         </div>
     </div>
@@ -90,7 +89,6 @@ function missionLog(t, m) {
     logPanel.prepend(line);
 }
 
-// モード切り替え
 document.getElementById('mode-toggle-btn').onclick = () => {
     isCustomMode = !isCustomMode;
     const modeName = isCustomMode ? "YouTube風" : "標準Videoタグ";
@@ -112,81 +110,82 @@ function extractVideoId(url) {
 }
 
 async function startAdventure(videoId) {
-    missionLog("SYSTEM", "🚀 新たな動画をスキャン中...");
+    missionLog("SYSTEM", "🚀 探検準備開始... 前のデータをパージ中");
     
-    // --- 徹底的なリセット ---
+    // --- 徹底的な完全リセット ---
     video.pause();
     audioTrack.pause();
-    
-    // 前のソースを完全にクリア（残像・残音防止）
     video.src = "";
     audioTrack.src = "";
+    video.removeAttribute("src"); 
+    audioTrack.removeAttribute("src");
     video.load();
     audioTrack.load();
     
-    // 時間を強制的に0に戻す
-    video.currentTime = 0;
-    audioTrack.currentTime = 0;
-    
+    // UI初期化
     document.getElementById('player-section').style.display = 'block';
-    quickQualityBar.innerHTML = ''; 
+    quickQualityBar.innerHTML = '<span style="color:#888; font-size:12px;">ストリーム解析中...</span>'; 
 
     try {
-        // oisogiスキャン
+        let data;
+        missionLog("NETWORK", "oisogiスキャン試行...");
         const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
-        if (!res.ok) throw new Error("APIレスポンスエラー");
-        const data = await res.json();
         
-        if (!data.streams || !data.streams.video) throw new Error("ストリームが見つかりません");
+        if (res.ok) {
+            data = await res.json();
+        } else {
+            missionLog("NETWORK", "oisogi失敗。標準APIに切り替え...");
+            const resAlt = await fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`);
+            if (!resAlt.ok) throw new Error("全APIリクエスト失敗");
+            data = await resAlt.json();
+        }
+        
+        if (!data.streams || !data.streams.video) throw new Error("有効なストリームが見つかりません");
 
         const vUrl = data.streams.video[0].url;
-        const aUrl = data.streams.audio[0].url;
+        const aUrl = data.streams.audio ? data.streams.audio[0].url : null;
 
-        // 音声と動画のバッファリング同期を狙う
-        video.src = vUrl;
-        audioTrack.src = aUrl;
-        
-        video.load();
-        audioTrack.load();
+        missionLog("DATA", `スキャン成功！動画URL取得完了`);
 
+        // 画質メニュー構築
         setupQualityMenu(data.streams.video);
-        missionLog("DATA", "ストリーム展開完了！");
 
-        // メタデータロード完了を待って再生
+        // ソースセット
+        video.src = vUrl;
+        if(aUrl) audioTrack.src = aUrl;
+
+        // メタデータロードを待ってから初期化
         video.onloadedmetadata = () => {
             video.currentTime = 0;
-            audioTrack.currentTime = 0;
-            missionLog("SYSTEM", "シーク位置を0に強制セット完了");
+            if(aUrl) audioTrack.currentTime = 0;
+            missionLog("SYNC", "再生位置を0に初期化完了");
+            
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    if(aUrl) audioTrack.play();
+                    document.getElementById('play-pause').innerText = '⏸';
+                }).catch(e => {
+                    missionLog("WARN", "自動再生ブロック：ユーザー操作を待機");
+                });
+            }
         };
 
-        // 自動再生を試みる
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                audioTrack.play();
-                document.getElementById('play-pause').innerText = '⏸';
-            }).catch(e => {
-                missionLog("WARN", "再生がブロックされました。ボタンを押してください");
-                document.getElementById('play-pause').innerText = '▶';
-            });
-        }
-
     } catch (e) {
-        missionLog("ERROR", `スキャン失敗: ${e.message}`);
+        missionLog("ERROR", `致命的エラー: ${e.message}`);
+        quickQualityBar.innerHTML = '<span style="color:#f00;">読み込みに失敗しました</span>';
     }
 }
 
-// 画質切り替え（時間維持をより精密に）
 function switchQuality(newUrl) {
     const now = video.currentTime;
     const wasPlaying = !video.paused;
-    missionLog("ACTION", `画質変更リクエスト: ${now.toFixed(2)}s`);
+    missionLog("ACTION", `画質変更：${now.toFixed(2)}s から再開を試みます`);
     
     video.pause();
     video.src = newUrl;
     video.load();
     
-    // メタデータが読み込まれたら元の場所へ飛ばす
     const onLoaded = () => {
         video.currentTime = now;
         audioTrack.currentTime = now;
@@ -194,50 +193,46 @@ function switchQuality(newUrl) {
             video.play();
             audioTrack.play();
         }
+        missionLog("SYNC", `画質切り替え・同期完了`);
         video.removeEventListener('loadedmetadata', onLoaded);
     };
     video.addEventListener('loadedmetadata', onLoaded);
 }
 
 // --- 精密同期エンジン ---
-
 video.onplay = () => { audioTrack.play(); document.getElementById('play-pause').innerText = '⏸'; };
 video.onpause = () => { audioTrack.pause(); document.getElementById('play-pause').innerText = '▶'; };
 video.onratechange = () => audioTrack.playbackRate = video.playbackRate;
 
-// シーク（巻き戻り・早送り）時の同期
 video.onseeking = () => {
-    audioTrack.currentTime = video.currentTime;
+    if (Math.abs(audioTrack.currentTime - video.currentTime) > 0.1) {
+        audioTrack.currentTime = video.currentTime;
+    }
 };
 
 video.onseeked = () => {
     audioTrack.currentTime = video.currentTime;
-    missionLog("SYNC", "シーク完了・同期");
 };
 
-// バッファリング時の同期
-video.onwaiting = () => {
-    audioTrack.pause();
-    missionLog("DEBUG", "バッファリング中...");
-};
-video.onplaying = () => audioTrack.play();
-
-// ズレ補正（1秒以上の差で修正）
+// ズレ監視（2秒おきにチェックし、0.2秒以上の差があれば補正）
 setInterval(() => {
     if(!video.paused && video.readyState >= 2) {
         const diff = Math.abs(video.currentTime - audioTrack.currentTime);
-        if(diff > 0.3) { // 0.3秒以上のズレで修正
+        if(diff > 0.2) {
             audioTrack.currentTime = video.currentTime;
         }
     }
 }, 2000);
 
-// UI操作
 document.getElementById('launch-btn').onclick = () => {
     const val = document.getElementById('youtubeLink').value;
     const id = extractVideoId(val);
-    if(id) startAdventure(id);
-    else missionLog("WARN", "有効なURL/IDを入力してください");
+    if(id) {
+        console.log(`VideoID determined: ${id}`);
+        startAdventure(id);
+    } else {
+        missionLog("WARN", "有効なURL/IDを入力してください");
+    }
 };
 
 document.getElementById('play-pause').onclick = () => {
@@ -247,7 +242,7 @@ document.getElementById('play-pause').onclick = () => {
 
 video.ontimeupdate = () => {
     const p = (video.currentTime / video.duration) * 100;
-    document.getElementById('progress-bar').style.width = p + '%';
+    document.getElementById('progress-bar').style.width = (p || 0) + '%';
     document.getElementById('time-display').innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
 };
 
@@ -263,7 +258,7 @@ function setupQualityMenu(streams) {
     menu.innerHTML = '';
     quickQualityBar.innerHTML = '';
 
-    streams.forEach((s, index) => {
+    streams.forEach((s) => {
         const label = s.qualityLabel || `${s.height}p`;
         
         // メニュー用
@@ -272,14 +267,12 @@ function setupQualityMenu(streams) {
         li.onclick = () => { switchQuality(s.url); menu.classList.remove('show'); };
         menu.appendChild(li);
 
-        // クイックバー用（ボタンを直接配置）
-        if(index < 4) { // 上位4つだけ表示
-            const btn = document.createElement('button');
-            btn.className = 'q-btn';
-            btn.innerText = label;
-            btn.onclick = () => switchQuality(s.url);
-            quickQualityBar.appendChild(btn);
-        }
+        // ビデオ下のクイックボタン
+        const btn = document.createElement('button');
+        btn.className = 'q-btn';
+        btn.innerText = label;
+        btn.onclick = () => switchQuality(s.url);
+        quickQualityBar.appendChild(btn);
     });
 }
 
@@ -288,7 +281,6 @@ document.getElementById('settings-btn').onclick = (e) => {
     document.getElementById('quality-menu').classList.toggle('show');
 };
 
-// メニュー以外をクリックで閉じる
 window.onclick = () => document.getElementById('quality-menu').classList.remove('show');
 
 document.getElementById('progress-area').onclick = (e) => {

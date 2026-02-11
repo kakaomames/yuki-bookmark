@@ -7,305 +7,252 @@
     <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
     
     <meta name="description" content="Gemini programming隊 特製プレイヤー：oisogiスキャン実装済。大学試験対策の解説動画を爆速で展開！">
-    <meta name="keywords" content="Gemini, 大学試験, 動画プレイヤー, oisogi, プログラミング隊">
-    <meta name="author" content="カカオマメ & Gemini Programming隊">
-    
-    <meta property="og:title" content="大学試験対策問題と解説動画の表示">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://xeroxapp032.vercel.app/">
-    <meta property="og:image" content="https://kakaomames.github.io/rei/logo.png">
-    <meta property="og:description" content="oisogiスキャンで動画を即座に再生！Gemini Programming隊の探険用プレイヤー。">
-    <meta name="twitter:card" content="summary_large_image">
-
     <style>
         body { background-color: #0f0f0f; color: #f1f1f1; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7); max-width: 850px; width: 100%; box-sizing: border-box; border: 1px solid #333; }
-        h1 { font-size: 1.2em; margin-bottom: 10px; }
-        h1 a { color: #888; text-decoration: none; transition: 0.3s; }
-        h1 a:hover { color: #ff0000; }
-        h2 { color: #ff0000; text-align: center; margin-top: 0; text-shadow: 0 0 10px rgba(255,0,0,0.3); }
+        h2 { color: #ff0000; text-align: center; text-shadow: 0 0 10px rgba(255,0,0,0.3); }
         
-        .form-group { margin-bottom: 20px; }
-        input[type="text"] { width: 100%; padding: 15px; border: 2px solid #333; background: #000; color: #fff; border-radius: 8px; box-sizing: border-box; font-size: 1em; outline: none; transition: 0.3s; }
-        input[type="text"]:focus { border-color: #ff0000; }
+        input[type="text"] { width: 100%; padding: 15px; border: 2px solid #333; background: #000; color: #fff; border-radius: 8px; box-sizing: border-box; margin-bottom: 10px; }
         
-        button#launch-btn { background-color: #ff0000; color: white; padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; width: 100%; transition: 0.3s; box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4); }
-        button#launch-btn:hover { background-color: #cc0000; transform: translateY(-2px); }
+        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        #launch-btn { background-color: #ff0000; color: white; }
+        #mode-toggle-btn { background-color: #444; color: white; }
 
-        #player-section { display: none; width: 100%; margin-top: 30px; }
+        #player-section { display: none; width: 100%; margin-top: 20px; }
         .yt-container { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid #444; }
-        video { width: 100%; height: 100%; display: block; }
+        video { width: 100%; height: 100%; }
 
-        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; box-sizing: border-box; opacity: 0; transition: 0.3s; }
-        .yt-container:hover .yt-controls { opacity: 1; }
+        .yt-controls { position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9)); padding: 15px; box-sizing: border-box; opacity: 0; transition: 0.3s; pointer-events: none; }
+        .yt-container:hover .yt-controls { opacity: 1; pointer-events: auto; }
+        .hidden-ui { display: none !important; }
+
+        .progress-area { height: 6px; background: rgba(255,255,255,0.2); margin-bottom: 12px; cursor: pointer; position: relative; }
+        .progress-bar { height: 100%; background: #f00; width: 0%; }
         
-        .progress-area { height: 6px; background: rgba(255,255,255,0.2); margin-bottom: 12px; cursor: pointer; position: relative; border-radius: 3px; }
-        .progress-bar { height: 100%; background: #f00; width: 0%; border-radius: 3px; position: relative; }
-        .progress-bar::after { content: ''; position: absolute; right: -5px; top: -4px; width: 14px; height: 14px; background: #f00; border-radius: 50%; display: none; }
-        .progress-area:hover .progress-bar::after { display: block; }
-        
-        .bottom-controls { display: flex; align-items: center; justify-content: space-between; }
-        .left-controls, .right-controls { display: flex; align-items: center; gap: 15px; }
-        .control-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; padding: 5px; transition: 0.2s; }
-        .control-btn:hover { transform: scale(1.1); color: #ff0000; }
-        
-        .volume-container { display: flex; align-items: center; gap: 8px; }
-        #volume-slider { width: 0; transition: 0.3s; cursor: pointer; accent-color: #ff0000; opacity: 0; }
-        .volume-container:hover #volume-slider { width: 80px; opacity: 1; }
-        
-        .yt-menu { position: absolute; bottom: 70px; right: 15px; background: rgba(20,20,20,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; max-height: 250px; overflow-y: auto; backdrop-filter: blur(5px); }
+        .yt-menu { position: absolute; bottom: 70px; right: 15px; background: rgba(20,20,20,0.95); border-radius: 8px; padding: 10px; list-style: none; display: none; z-index: 10; border: 1px solid #444; cursor: pointer;}
+        .yt-menu li { padding: 5px 10px; transition: 0.2s; }
+        .yt-menu li:hover { background: #444; }
         .yt-menu.show { display: block; }
-        .yt-menu li { padding: 10px 20px; cursor: pointer; font-size: 14px; color: #fff; border-bottom: 1px solid #333; transition: 0.2s; }
-        .yt-menu li:hover { background: #ff0000; color: #fff; }
 
-        #loading-area { display: none; margin-top: 20px; text-align: center; }
-        .spinner { width: 50px; height: 50px; border: 5px solid #333; border-top: 5px solid #ff0000; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #log-panel { margin-top: 15px; background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; color: #00ff00; border: 1px solid #333; max-height: 100px; overflow-y: auto; width: 100%; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1><a href="./y">⬅ 正規品に戻る(試作版)</a></h1>
         <h2>🚀 Gemini Programming隊 統合プレイヤー</h2>
         
-        <div class="form-group">
-            <input type="text" id="youtubeLink" placeholder="動画URLまたはIDを入力してください（例: dQw4w9WgXcQ）" value="">
-        </div>
-        <button id="launch-btn">探検開始（oisogiスキャン！）</button>
-
-        <div id="loading-area">
-            <div class="spinner"></div>
-            <p id="status-msg">📡 座標確認中...</p>
+        <input type="text" id="youtubeLink" placeholder="動画URLまたはIDを入力してください" value="">
+        <div class="btn-group">
+            <button id="launch-btn">探検開始（oisogi！）</button>
+            <button id="mode-toggle-btn">モード切替: YouTube風</button>
         </div>
 
         <div id="player-section">
             <div class="yt-container" id="yt-player-box">
                 <video id="main-video" playsinline></video>
-                <div class="yt-controls">
+                <div class="yt-controls" id="custom-ui">
                     <div class="progress-area" id="progress-area"><div class="progress-bar" id="progress-bar"></div></div>
-                    <div class="bottom-controls">
-                        <div class="left-controls">
-                            <button class="control-btn" id="play-pause">▶</button>
-                            <div class="volume-container">
-                                <button class="control-btn" id="mute-btn">🔊</button>
-                                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="1">
-                            </div>
-                            <span id="time-display" style="font-size: 14px; font-variant-numeric: tabular-nums;">0:00 / 0:00</span>
+                    <div style="display:flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <button id="play-pause" style="background:none; color:#fff; font-size:20px; cursor:pointer;">▶</button>
+                            <span id="time-display" style="margin-left:10px;">0:00 / 0:00</span>
                         </div>
-                        <div class="right-controls">
-                            <button class="control-btn" id="settings-btn" title="画質設定">⚙️</button>
-                            <button class="control-btn" id="fullscreen-btn" title="全画面表示">🔳</button>
-                        </div>
+                        <button id="settings-btn" style="background:none; color:#fff; cursor:pointer;">⚙️ 画質</button>
                     </div>
                 </div>
                 <ul id="quality-menu" class="yt-menu"></ul>
             </div>
-            <p id="api-status" style="font-size: 12px; color: #00ff00; margin-top: 15px; text-align: center; font-family: monospace;">
-                ⚡ システム待機中...
-            </p>
+            
+            <div id="log-panel">📡 ログ待機中...</div>
         </div>
     </div>
 
 <script>
 let audioTrack = new Audio();
+let isCustomMode = true;
 const video = document.getElementById('main-video');
-const playBtn = document.getElementById('play-pause');
-const volSlider = document.getElementById('volume-slider');
-const muteBtn = document.getElementById('mute-btn');
-const progressArea = document.getElementById('progress-area');
-const progressBar = document.getElementById('progress-bar');
-const timeDisplay = document.getElementById('time-display');
-const loadingArea = document.getElementById('loading-area');
-const playerSection = document.getElementById('player-section');
-const statusMsg = document.getElementById('status-msg');
-const qualityMenu = document.getElementById('quality-menu');
-const apiStatus = document.getElementById('api-status');
+const logPanel = document.getElementById('log-panel');
 
-function missionLog(t, m) { console.log(`[${t}] ${m}`); }
+function missionLog(t, m) {
+    const entry = `[${t}] ${m}`;
+    console.log(entry);
+    const line = document.createElement('div');
+    line.textContent = entry;
+    logPanel.prepend(line);
+}
+
+// モード切り替え
+document.getElementById('mode-toggle-btn').onclick = () => {
+    isCustomMode = !isCustomMode;
+    const modeName = isCustomMode ? "YouTube風" : "標準Videoタグ";
+    document.getElementById('mode-toggle-btn').innerText = `モード切替: ${modeName}`;
+    
+    if(isCustomMode) {
+        video.removeAttribute('controls');
+        document.getElementById('custom-ui').classList.remove('hidden-ui');
+    } else {
+        video.setAttribute('controls', 'true');
+        document.getElementById('custom-ui').classList.add('hidden-ui');
+    }
+    missionLog("MODE", `プレイヤーモードを ${modeName} に変更`);
+};
 
 function extractVideoId(url) {
-    if(!url) return null;
     const match = url.match(/(?:v=|\/embed\/|\/watch\?v=|\/v\/|\/e\/|youtu\.be\/|project\/|https:\/\/www\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/);
-    let id = (match && match[1]) ? match[1] : (url.length === 11 ? url : null);
-    missionLog("DATA", `解析結果ID: ${id}`);
+    const id = (match && match[1]) ? match[1] : (url.length === 11 ? url : null);
     return id;
 }
 
-document.getElementById('launch-btn').onclick = () => {
-    const id = extractVideoId(document.getElementById('youtubeLink').value);
-    if(id) startAdventure(id);
-    else alert("有効なIDまたはURLを入力してくれ！");
-};
-
 async function startAdventure(videoId) {
-    missionLog("SYSTEM", "ターゲット補足、スキャン開始！");
-    // 初期化
+    missionLog("SYSTEM", "🚀 探索の準備開始！");
+    
+    // 徹底的な初期化
     video.pause();
     audioTrack.pause();
-    video.currentTime = 0;
+    video.src = "";
+    audioTrack.src = "";
+    video.currentTime = 0; // 時間をリセット
     audioTrack.currentTime = 0;
-    
-    playerSection.style.display = 'none';
-    loadingArea.style.display = 'block';
-    statusMsg.innerText = `📡 第1段階：oisogiスキャン実行中...`;
+
+    document.getElementById('player-section').style.display = 'block';
 
     try {
-        const resFast = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
-        const dataFast = await resFast.json();
-        if(!dataFast.streams || !dataFast.streams.video.length) throw new Error("ストリームが見つかりません");
-
-        loadingArea.style.display = 'none';
-        playerSection.style.display = 'block';
+        const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
+        const data = await res.json();
         
-        // 音声の初期セット
-        if (dataFast.streams.audio[0]) {
-            audioTrack.src = dataFast.streams.audio[0].url;
-            audioTrack.load();
-        }
+        const vUrl = data.streams.video[0].url;
+        const aUrl = data.streams.audio[0].url;
 
-        // 映像のセット (最初の画質)
-        switchQuality(dataFast.streams.video[0].url, false);
-        setupQualityMenu(dataFast.streams.video); 
+        video.src = vUrl;
+        audioTrack.src = aUrl;
+        
+        video.load();
+        audioTrack.load();
 
-        // 第2段階：全画質リストを裏で取得（現在の再生を阻害しない）
-        apiStatus.innerText = "🔍 第2段階：詳細地図（全画質）を裏で同期中...";
-        fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`)
-            .then(res => res.json())
-            .then(dataFull => {
-                if(dataFull.streams && dataFull.streams.video) {
-                    setupQualityMenu(dataFull.streams.video); 
-                    apiStatus.innerText = "✅ スキャン完了！全ての画質が利用可能だ。";
-                    missionLog("DATA", "全地図データの同期成功！");
-                }
-            })
-            .catch(e => {
-                apiStatus.innerText = "⚠️ 詳細データの取得に失敗したが、継続可能だ。";
-                missionLog("ERROR", "第2段階失敗");
-            });
+        setupQualityMenu(data.streams.video);
+        missionLog("DATA", "ストリーム展開完了！");
+
+        // メタデータ読み込み完了時に時間を再度合わせる
+        video.onloadedmetadata = () => {
+            video.currentTime = 0;
+            audioTrack.currentTime = 0;
+            missionLog("SYSTEM", "シーク位置をリセットしました");
+        };
+
+        video.play().then(() => audioTrack.play()).catch(e => missionLog("WARN", "再生ボタンを押してください"));
 
     } catch (e) {
-        statusMsg.innerHTML = `<span style="color:#ff0000;">💥 索敵失敗: ${e.message}</span>`;
-        missionLog("ERROR", e.message);
+        missionLog("ERROR", `スキャン失敗: ${e.message}`);
     }
 }
 
-function switchQuality(videoUrl, sync = true) {
-    // syncがtrueの場合のみ現在の時間を保持
-    const currentTime = sync ? video.currentTime : 0;
-    const isPlaying = !video.paused;
-
-    missionLog("ACTION", `同期ポイント[${currentTime.toFixed(2)}]で転送開始`);
-
-    video.src = videoUrl;
+// 画質切り替え
+function switchQuality(newUrl) {
+    const now = video.currentTime;
+    const wasPlaying = !video.paused;
+    missionLog("ACTION", `画質変更: ${now.toFixed(2)}sから再開`);
+    
+    video.src = newUrl;
     video.load();
     
-    // メタデータ読み込み完了時に時間を合わせる
-    const onLoaded = () => {
-        video.currentTime = currentTime;
-        audioTrack.currentTime = currentTime;
-        if (isPlaying) {
-            video.play().catch(() => {});
-            audioTrack.play().catch(() => {});
+    video.onloadedmetadata = () => {
+        video.currentTime = now;
+        audioTrack.currentTime = now; // 音声も合わせる
+        if(wasPlaying) {
+            video.play();
+            audioTrack.play();
         }
-        video.removeEventListener('loadedmetadata', onLoaded);
+        video.onloadedmetadata = null;
     };
-    video.addEventListener('loadedmetadata', onLoaded);
 }
 
-playBtn.onclick = () => {
-    if(video.paused) { 
-        video.play(); 
-        audioTrack.play(); 
-        playBtn.textContent = '⏸'; 
-    } else { 
-        video.pause(); 
-        audioTrack.pause(); 
-        playBtn.textContent = '▶'; 
+// --- 同期エンジン：イベントベースに集約 ---
+
+// 1. 基本動作の同期
+video.onplay = () => audioTrack.play();
+video.onpause = () => audioTrack.pause();
+video.onratechange = () => audioTrack.playbackRate = video.playbackRate;
+
+// 2. シーク時の同期（ここが重要）
+video.onseeking = () => {
+    audioTrack.currentTime = video.currentTime;
+};
+
+video.onseeked = () => {
+    audioTrack.currentTime = video.currentTime;
+    missionLog("ACTION", "同期完了");
+};
+
+// 3. 待機状態（バッファリング）の同期
+video.onwaiting = () => audioTrack.pause();
+video.onplaying = () => audioTrack.play();
+
+// 4. 定期的なズレチェック（頻度を下げて、大きなズレのみ補正）
+setInterval(() => {
+    if(!video.paused) {
+        const diff = Math.abs(video.currentTime - audioTrack.currentTime);
+        if(diff > 0.5) { // 0.5秒以上のズレがある場合のみ
+            audioTrack.currentTime = video.currentTime;
+            missionLog("SYSTEM", `ズレ補正実行: ${diff.toFixed(2)}s`);
+        }
     }
+}, 3000); // 3秒に1回チェック
+
+// UI操作
+document.getElementById('launch-btn').onclick = () => {
+    const val = document.getElementById('youtubeLink').value;
+    const id = extractVideoId(val);
+    if(id) startAdventure(id);
 };
 
-volSlider.oninput = (e) => {
-    const val = e.target.value;
-    video.volume = audioTrack.volume = val;
-    muteBtn.textContent = val == 0 ? '🔇' : (val < 0.5 ? '🔉' : '🔊');
-};
-
-muteBtn.onclick = () => {
-    const isMuted = !video.muted;
-    video.muted = audioTrack.muted = isMuted;
-    muteBtn.textContent = isMuted ? '🔇' : (volSlider.value == 0 ? '🔇' : '🔊');
-};
-
-progressArea.onclick = (e) => {
-    const rect = progressArea.getBoundingClientRect();
-    const target = (e.clientX - rect.left) / rect.width;
-    const targetTime = target * video.duration;
-    // 映像と音声を同時にシーク
-    video.currentTime = targetTime;
-    audioTrack.currentTime = targetTime;
-    missionLog("ACTION", `シーク移動: ${targetTime.toFixed(2)}s`);
+document.getElementById('play-pause').onclick = () => {
+    if(video.paused) {
+        video.play();
+        document.getElementById('play-pause').innerText = '⏸';
+    } else {
+        video.pause();
+        document.getElementById('play-pause').innerText = '▶';
+    }
 };
 
 video.ontimeupdate = () => {
-    if(video.duration) {
-        const percent = (video.currentTime / video.duration) * 100;
-        progressBar.style.width = percent + '%';
-        timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
-    }
-    // 同期補正：0.2秒以上のズレが発生したら音声を映像に強制同期
-    if (Math.abs(video.currentTime - audioTrack.currentTime) > 0.2) {
-        audioTrack.currentTime = video.currentTime;
-    }
+    const p = (video.currentTime / video.duration) * 100;
+    document.getElementById('progress-bar').style.width = p + '%';
+    document.getElementById('time-display').innerText = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
 };
 
-// 音声が止まったら映像も止める（バッファリング対策）
-audioTrack.onwaiting = () => video.pause();
-audioTrack.onplaying = () => { if(playBtn.textContent === '⏸') video.play(); };
-
 function formatTime(s) {
-    if(isNaN(s)) return "0:00";
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
+    if(!s || isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
-    if(h > 0) return `${h}:${m < 10 ? '0' : ''}${m}:${sec < 10 ? '0' : ''}${sec}`;
     return `${m}:${sec < 10 ? '0' : ''}${sec}`;
 }
 
 function setupQualityMenu(streams) {
-    qualityMenu.innerHTML = '<li style="font-weight:bold; color:#ff0000; border-bottom:2px solid #ff0000;">画質選択</li>';
-    streams.forEach(v => {
+    const menu = document.getElementById('quality-menu');
+    menu.innerHTML = '';
+    streams.forEach(s => {
         const li = document.createElement('li');
-        li.textContent = v.qualityLabel ? v.qualityLabel : `${v.itag}p`;
-        li.onclick = () => {
-            switchQuality(v.url, true);
-            qualityMenu.classList.remove('show');
-            missionLog("ACTION", `画質変更: ${li.textContent}`);
-        };
-        qualityMenu.appendChild(li);
+        li.innerText = s.qualityLabel || "不明";
+        li.onclick = () => { switchQuality(s.url); menu.classList.remove('show'); };
+        menu.appendChild(li);
     });
 }
 
 document.getElementById('settings-btn').onclick = (e) => {
     e.stopPropagation();
-    qualityMenu.classList.toggle('show');
+    document.getElementById('quality-menu').classList.toggle('show');
 };
 
-document.addEventListener('click', () => qualityMenu.classList.remove('show'));
-
-document.getElementById('fullscreen-btn').onclick = () => {
-    const box = document.getElementById('yt-player-box');
-    if (box.requestFullscreen) box.requestFullscreen();
-    else if (box.webkitRequestFullscreen) box.webkitRequestFullscreen();
+document.getElementById('progress-area').onclick = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const targetTime = pos * video.duration;
+    video.currentTime = targetTime;
+    audioTrack.currentTime = targetTime;
 };
-
-(function() {
-    const v = new URLSearchParams(window.location.search).get('v');
-    if(v) { 
-        document.getElementById('youtubeLink').value = v; 
-        startAdventure(v); 
-    }
-})();
 </script>
 </body>
 </html>

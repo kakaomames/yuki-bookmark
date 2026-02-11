@@ -7,6 +7,7 @@
     <link rel="icon" href="https://kakaomames.github.io/rei/logo.png">
     
     <meta name="description" content="Gemini programming隊 特製プレイヤー：oisogiスキャン実装済。大学試験対策の解説動画を爆速で展開！">
+    <meta property="og:image" content="https://kakaomames.github.io/rei/logo.png">
     <style>
         body { background-color: #0f0f0f; color: #f1f1f1; font-family: 'Helvetica Neue', Arial, sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
         .container { background-color: #1e1e1e; padding: 30px; border-radius: 12px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.7); max-width: 850px; width: 100%; box-sizing: border-box; border: 1px solid #333; }
@@ -36,9 +37,10 @@
 
         #log-panel { margin-top: 15px; background: #000; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; color: #00ff00; border: 1px solid #333; max-height: 100px; overflow-y: auto; width: 100%; }
         
-        .quick-quality-bar { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 10px; background: #252525; border-radius: 8px; }
-        .q-btn { background: #ff0000; color: #fff; border: none; padding: 8px 16px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .q-btn:hover { background: #cc0000; transform: scale(1.05); }
+        .quick-quality-bar { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 10px; background: #252525; border-radius: 8px; border: 1px dashed #444; }
+        .q-btn { background: #333; color: #fff; border: 1px solid #555; padding: 6px 12px; font-size: 12px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .q-btn:hover { background: #ff0000; border-color: #ff0000; }
+        .q-btn.active { background: #ff0000; border-color: #fff; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -77,6 +79,7 @@
 <script>
 let audioTrack = new Audio();
 let isCustomMode = true;
+let currentStreams = []; // 現在取得できている画質リスト
 const video = document.getElementById('main-video');
 const logPanel = document.getElementById('log-panel');
 const quickQualityBar = document.getElementById('quick-quality');
@@ -93,7 +96,6 @@ document.getElementById('mode-toggle-btn').onclick = () => {
     isCustomMode = !isCustomMode;
     const modeName = isCustomMode ? "YouTube風" : "標準Videoタグ";
     document.getElementById('mode-toggle-btn').innerText = `モード切替: ${modeName}`;
-    
     if(isCustomMode) {
         video.removeAttribute('controls');
         document.getElementById('custom-ui').classList.remove('hidden-ui');
@@ -101,7 +103,7 @@ document.getElementById('mode-toggle-btn').onclick = () => {
         video.setAttribute('controls', 'true');
         document.getElementById('custom-ui').classList.add('hidden-ui');
     }
-    missionLog("MODE", `プレイヤーモードを ${modeName} に変更`);
+    missionLog("MODE", `モード：${modeName}`);
 };
 
 function extractVideoId(url) {
@@ -110,82 +112,94 @@ function extractVideoId(url) {
 }
 
 async function startAdventure(videoId) {
-    missionLog("SYSTEM", "🚀 探検準備開始... 前のデータをパージ中");
+    missionLog("SYSTEM", "🚀 新たな冒険へ出発！リセット開始...");
     
-    // --- 徹底的な完全リセット ---
+    // --- 強制リセット ---
     video.pause();
     audioTrack.pause();
     video.src = "";
     audioTrack.src = "";
-    video.removeAttribute("src"); 
-    audioTrack.removeAttribute("src");
     video.load();
-    audioTrack.load();
+    video.currentTime = 0;
+    audioTrack.currentTime = 0;
+    currentStreams = [];
     
-    // UI初期化
     document.getElementById('player-section').style.display = 'block';
-    quickQualityBar.innerHTML = '<span style="color:#888; font-size:12px;">ストリーム解析中...</span>'; 
+    quickQualityBar.innerHTML = '<span style="color:#ff0000;">⚡ oisogi スキャン中...</span>';
 
-    try {
-        let data;
-        missionLog("NETWORK", "oisogiスキャン試行...");
-        const res = await fetch(`https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`);
-        
-        if (res.ok) {
-            data = await res.json();
-        } else {
-            missionLog("NETWORK", "oisogi失敗。標準APIに切り替え...");
-            const resAlt = await fetch(`https://xeroxapp032.vercel.app/api/v1/${videoId}`);
-            if (!resAlt.ok) throw new Error("全APIリクエスト失敗");
-            data = await resAlt.json();
-        }
-        
-        if (!data.streams || !data.streams.video) throw new Error("有効なストリームが見つかりません");
+    // 1. oisogi（高速再生）リクエスト
+    const oisogiUrl = `https://xeroxapp032.vercel.app/api/v1/oisogi/${videoId}`;
+    // 2. 標準（全画質取得）リクエスト
+    const fullUrl = `https://xeroxapp032.vercel.app/api/v1/${videoId}`;
 
-        const vUrl = data.streams.video[0].url;
-        const aUrl = data.streams.audio ? data.streams.audio[0].url : null;
-
-        missionLog("DATA", `スキャン成功！動画URL取得完了`);
-
-        // 画質メニュー構築
-        setupQualityMenu(data.streams.video);
-
-        // ソースセット
-        video.src = vUrl;
-        if(aUrl) audioTrack.src = aUrl;
-
-        // メタデータロードを待ってから初期化
-        video.onloadedmetadata = () => {
-            video.currentTime = 0;
-            if(aUrl) audioTrack.currentTime = 0;
-            missionLog("SYNC", "再生位置を0に初期化完了");
-            
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    if(aUrl) audioTrack.play();
-                    document.getElementById('play-pause').innerText = '⏸';
-                }).catch(e => {
-                    missionLog("WARN", "自動再生ブロック：ユーザー操作を待機");
-                });
+    // まず oisogi を最優先で取得
+    fetch(oisogiUrl)
+        .then(r => r.json())
+        .then(data => {
+            if (data.streams) {
+                missionLog("OISOGI", "爆速データ到着！再生準備...");
+                updateStreams(data.streams.video);
+                if (!video.src) { // まだ何も再生されてなければ
+                    playStream(data.streams.video[0].url, data.streams.audio ? data.streams.audio[0].url : null);
+                }
             }
-        };
+        })
+        .catch(e => missionLog("ERROR", "oisogi失敗"));
 
-    } catch (e) {
-        missionLog("ERROR", `致命的エラー: ${e.message}`);
-        quickQualityBar.innerHTML = '<span style="color:#f00;">読み込みに失敗しました</span>';
-    }
+    // 次に標準APIを待機（画質リスト補完用）
+    fetch(fullUrl)
+        .then(r => r.json())
+        .then(data => {
+            if (data.streams) {
+                missionLog("NETWORK", "標準データ(全画質)が合流したぞ！");
+                updateStreams(data.streams.video);
+            }
+        })
+        .catch(e => missionLog("ERROR", "標準APIスキャン失敗"));
 }
 
-function switchQuality(newUrl) {
+function updateStreams(newStreams) {
+    // 重複を避けてマージ
+    newStreams.forEach(ns => {
+        if (!currentStreams.find(cs => cs.qualityLabel === ns.qualityLabel)) {
+            currentStreams.push(ns);
+        }
+    });
+    // 画質の高い順にソート
+    currentStreams.sort((a, b) => (parseInt(b.height) || 0) - (parseInt(a.height) || 0));
+    setupQualityMenu(currentStreams);
+}
+
+function playStream(vUrl, aUrl) {
+    video.src = vUrl;
+    if(aUrl) audioTrack.src = aUrl;
+    
+    video.load();
+    if(aUrl) audioTrack.load();
+
+    video.onloadedmetadata = () => {
+        video.currentTime = 0;
+        if(aUrl) audioTrack.currentTime = 0;
+        video.play();
+        missionLog("SYNC", "再生スタート [0.00s]");
+    };
+}
+
+function switchQuality(newUrl, btnElement) {
     const now = video.currentTime;
     const wasPlaying = !video.paused;
-    missionLog("ACTION", `画質変更：${now.toFixed(2)}s から再開を試みます`);
+    missionLog("ACTION", `画質変更：${now.toFixed(2)}s から同期中...`);
     
     video.pause();
+    audioTrack.pause();
+    
     video.src = newUrl;
     video.load();
     
+    // ボタンのハイライト
+    document.querySelectorAll('.q-btn').forEach(b => b.classList.remove('active'));
+    if(btnElement) btnElement.classList.add('active');
+
     const onLoaded = () => {
         video.currentTime = now;
         audioTrack.currentTime = now;
@@ -193,46 +207,35 @@ function switchQuality(newUrl) {
             video.play();
             audioTrack.play();
         }
-        missionLog("SYNC", `画質切り替え・同期完了`);
+        missionLog("SYNC", "画質切替＆同期成功！");
         video.removeEventListener('loadedmetadata', onLoaded);
     };
     video.addEventListener('loadedmetadata', onLoaded);
 }
 
-// --- 精密同期エンジン ---
+// --- 同期エンジン ---
 video.onplay = () => { audioTrack.play(); document.getElementById('play-pause').innerText = '⏸'; };
 video.onpause = () => { audioTrack.pause(); document.getElementById('play-pause').innerText = '▶'; };
 video.onratechange = () => audioTrack.playbackRate = video.playbackRate;
 
-video.onseeking = () => {
-    if (Math.abs(audioTrack.currentTime - video.currentTime) > 0.1) {
-        audioTrack.currentTime = video.currentTime;
-    }
-};
+video.onseeking = () => { audioTrack.currentTime = video.currentTime; };
+video.onseeked = () => { audioTrack.currentTime = video.currentTime; };
 
-video.onseeked = () => {
-    audioTrack.currentTime = video.currentTime;
-};
-
-// ズレ監視（2秒おきにチェックし、0.2秒以上の差があれば補正）
+// ズレ監視（0.5秒おき）
 setInterval(() => {
     if(!video.paused && video.readyState >= 2) {
         const diff = Math.abs(video.currentTime - audioTrack.currentTime);
-        if(diff > 0.2) {
+        if(diff > 0.15) {
             audioTrack.currentTime = video.currentTime;
+            missionLog("DEBUG", "Sync補正");
         }
     }
-}, 2000);
+}, 500);
 
 document.getElementById('launch-btn').onclick = () => {
-    const val = document.getElementById('youtubeLink').value;
-    const id = extractVideoId(val);
-    if(id) {
-        console.log(`VideoID determined: ${id}`);
-        startAdventure(id);
-    } else {
-        missionLog("WARN", "有効なURL/IDを入力してください");
-    }
+    const id = extractVideoId(document.getElementById('youtubeLink').value);
+    if(id) startAdventure(id);
+    else missionLog("WARN", "IDが不正だぞ！");
 };
 
 document.getElementById('play-pause').onclick = () => {
@@ -264,14 +267,15 @@ function setupQualityMenu(streams) {
         // メニュー用
         const li = document.createElement('li');
         li.innerText = label;
-        li.onclick = () => { switchQuality(s.url); menu.classList.remove('show'); };
+        li.onclick = () => { switchQuality(s.url, null); menu.classList.remove('show'); };
         menu.appendChild(li);
 
-        // ビデオ下のクイックボタン
+        // クイックボタン用（ビデオの下）
         const btn = document.createElement('button');
         btn.className = 'q-btn';
+        if (video.src === s.url) btn.classList.add('active');
         btn.innerText = label;
-        btn.onclick = () => switchQuality(s.url);
+        btn.onclick = () => switchQuality(s.url, btn);
         quickQualityBar.appendChild(btn);
     });
 }
@@ -286,9 +290,9 @@ window.onclick = () => document.getElementById('quality-menu').classList.remove(
 document.getElementById('progress-area').onclick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const pos = (e.clientX - rect.left) / rect.width;
-    const targetTime = pos * video.duration;
-    video.currentTime = targetTime;
-    audioTrack.currentTime = targetTime;
+    const target = pos * video.duration;
+    video.currentTime = target;
+    audioTrack.currentTime = target;
 };
 </script>
 </body>

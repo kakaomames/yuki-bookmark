@@ -3,118 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="YouTubeの表記揺れを網羅したGemini programming隊の特製ページ">
-    <meta name="keywords" content="YouTube, yt, YOUTUBE, WebEdition, Programming">
-    <meta name="author" content="Gemini programming隊">
-    <meta property="og:title" content="YouTube Notation Chaos">
+    <meta name="description" content="観測データ：YTの多重層位相">
+    <meta property="og:title" content="不可視の共鳴 - yt -">
     <meta property="og:image" content="https://kakaomames.github.io/rei/logo.png">
-    <title>Youtubeといえば？</title>
+    <title>【 観測不能な共鳴：†yt† の特異点 】</title>
     <style>
         :root {
             --yt-red: #ff0000;
-            --yt-black: #282828;
-            --yt-white: #ffffff;
+            --yt-black: #0d0d0d;
+            --yt-gold: #ffd700;
+            --mystic-purple: #4b0082;
         }
 
         body {
             background-color: var(--yt-black);
-            color: var(--yt-white);
-            font-family: 'Arial Black', sans-serif;
+            color: #e0e0e0;
+            font-family: 'serif';
+            margin: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            text-align: center;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #0d0d0d 100%);
         }
 
-        .container {
-            padding: 20px;
-            border: 5px solid var(--yt-red);
-            border-radius: 20px;
-            box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
-            background: rgba(0, 0, 0, 0.8);
-            transform: rotate(-2deg);
-        }
-
+        /* 浮遊するタイトルの装飾 */
         h1 {
-            font-size: 3rem;
-            margin-bottom: 30px;
-            text-shadow: 3px 3px 0px var(--yt-red);
-        }
-
-        .links-area {
-            font-size: 2.5rem;
-            line-height: 1.6;
-        }
-
-        /* 指定されたaタグのスタイル */
-        a {
+            font-size: 1.8rem;
+            letter-spacing: 0.5rem;
             color: var(--yt-white);
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* 表記揺れエリア：蜃気楼のようなエフェクト */
+        .links-area {
+            font-size: 2.2rem;
+            padding: 40px;
+            filter: blur(0.5px);
+            transition: filter 0.5s;
+        }
+
+        .links-area:hover {
+            filter: blur(0);
+        }
+
+        a {
+            color: #aaa;
             text-decoration: none;
+            padding: 0 5px;
+            transition: 0.4s ease;
             position: relative;
-            display: inline-block;
-            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            padding: 0 10px;
-            background: linear-gradient(transparent 70%, var(--yt-red) 70%);
         }
 
         a:hover {
-            transform: scale(1.5) rotate(5deg);
-            color: gold;
-            background: var(--yt-red);
-            z-index: 10;
+            color: var(--yt-red);
+            text-shadow: 0 0 20px var(--yt-red);
+            letter-spacing: 4px;
         }
 
-        a::before {
-            content: "▶";
-            position: absolute;
-            left: -25px;
-            opacity: 0;
-            transition: 0.3s;
+        /* 10連brの深淵：異次元の裂け目 */
+        .void-rift {
+            width: 2px;
+            background: linear-gradient(to bottom, var(--yt-red), var(--mystic-purple), transparent);
+            box-shadow: 0 0 15px var(--yt-red);
         }
 
-        a:hover::before {
-            opacity: 1;
-            left: -35px;
+        /* 答えはytにあるかも？：幽霊のような出現 */
+        .final-hint {
+            margin-top: 20px;
+            padding-bottom: 100px;
         }
 
-        .logo {
-            width: 100px;
-            margin-bottom: 20px;
-            animation: pulse 2s infinite;
+        .hint-text {
+            font-size: 1.5rem;
+            font-style: italic;
+            color: var(--yt-gold);
+            opacity: 0.7;
+            background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.2), transparent);
+            padding: 20px 40px;
+            border-radius: 50%;
+            animation: breath 5s infinite;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+        @keyframes breath {
+            0%, 100% { opacity: 0.3; transform: scale(0.95); }
+            50% { opacity: 0.8; transform: scale(1.05); }
         }
 
-        .bg-text {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.05;
-            font-size: 10rem;
-            word-wrap: break-word;
-            user-select: none;
+        .logo-footer {
+            width: 40px;
+            filter: grayscale(1) brightness(0.5);
+            margin-top: 100px;
         }
     </style>
 </head>
 <body>
 
-    <div class="bg-text">YT Y y YOUTUBE YouTube youtube</div>
-
-    <div class="container">
-        <img src="https://kakaomames.github.io/rei/logo.png" alt="Logo" class="logo">
+    <section>
         <h1>Youtubeといえば？</h1>
-        
         <div class="links-area">
             <a href="yt">yt</a>？
             <a href="y">y</a>？
@@ -123,21 +115,32 @@
             <a href="YouTube">YouTube</a>？
             <a href="youtube">youtube</a>？
         </div>
+    </section>
+
+    <div class="void-rift">
+        <br><br><br><br><br><br><br><br><br><br>
     </div>
 
+    <section class="final-hint">
+        <div class="hint-text">
+            答えはytにあるかも？
+        </div>
+        <img src="https://kakaomames.github.io/rei/logo.png" alt="Logo" class="logo-footer">
+    </section>
+
     <script>
-        // 値が変わった時やクリックされた時にログを出す隊員向けの仕掛け
-        document.querySelectorAll('a').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault(); // ページ遷移を一旦止めてログを優先
-                console.log("ACTION: リンクがクリックされました -> " + this.getAttribute('href'));
-                missionLog("MOVE", "遷移先候補: " + this.getAttribute('href') + ".html");
-            });
+        // 不思議な現象をログに記録
+        document.addEventListener('mousemove', (e) => {
+            if (Math.random() > 0.98) {
+                missionLog("ANOMALY", `座標(${e.clientX}, ${e.clientY})にて微弱なyt反応を検知。`);
+            }
         });
 
         function missionLog(type, msg) {
-            console.log(`[${type}] ${new Date().toLocaleTimeString()}: ${msg}`);
+            console.log(`%c[${type}] %c${msg}`, "color: #ff0000; font-weight: bold;", "color: #00ff00;");
         }
+
+        missionLog("SYSTEM", "不可思議モードで起動しました。観測を開始します。");
     </script>
 </body>
 </html>

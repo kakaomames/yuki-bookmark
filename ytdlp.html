@@ -72,6 +72,44 @@ function createItagMap(urls) {
 
   return itagMap;
 }
+  async function convertUrlsWithJsonFile(urls) {
+  if (!Array.isArray(urls)) return {};
+
+  try {
+    // 1. 同じ階層にある itag.json を fetch して読み込む
+    const res = await fetch("./itag.json");
+    if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
+    const itagJsonData = await res.json();
+
+    // 2. 検索しやすいように { itag: "解像度 (コンテナ)" } の形に変換する
+    const itagMap = {};
+    itagJsonData.data.forEach(item => {
+      // 例: "1080p (mp4 / audio/video)" のような分かりやすい文字を作る
+      itagMap[item.itag] = `${item.resolution} (${item.container} / ${item.content})`;
+    });
+
+    // 3. urls 配列をループして、フォーマット名に変えていく
+    const result = {};
+    urls.forEach(url => {
+      const match = url.match(/\/itag\/(\d+)\//);
+      if (match) {
+        const itagNumber = match[1]; // 数字部分を抽出
+        
+        // jsonにあればその情報、なければデフォルト名
+        const formatName = itagMap[itagNumber] || `未定義のフォーマット (itag ${itagNumber})`;
+        
+        result[formatName] = url;
+      }
+    });
+
+    return result;
+
+  } catch (error) {
+    console.error("エラーが発生しました:", error);
+    return {};
+  }
+}
+
 
 
   // ここで data に urls 配列（Data.urls）が格納される

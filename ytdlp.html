@@ -1,3 +1,13 @@
+
+<script>
+function b(th) {
+  var now = new Date();
+  c(now,th)
+}
+function c(text,cuntext) {
+  var t = "[ " + text + " ] " + context;
+  console.log(t);
+};
 // https://www.youtube.com/watch?v=-lZg4iHDWO4
 let url = "https://xeroxapp032.vercel.app/yt-dlps-j?url=" + URL
 try {
@@ -7,11 +17,82 @@ try {
   if (!response.ok) {
     throw new Error(`HTTPエラー! ステータス: ${response.status}`);
   }
-
+  
   // ここで初めてデータの中身を解析して取得する
   const data = await response.json();
-  console.log(data);
+  b(data);
+  b(data.channel);
+  b(data.description);
+  // テスト用のデータ
+const inputD = data.duration;
+
+// 1. スラッシュで分ける関数（2020/02/14）
+function formatDateWithSlash(input) {
+  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
+}
+
+// 2. 0を消さない「〇月〇日」の関数（2020年02月14日）
+function formatDateWithZero(input) {
+  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1年\$2月\$3日");
+}
+
+// 3. 0を消してスッキリさせる「〇月〇日」の関数（2020年2月14日）
+function formatDateWithoutZero(input) {
+  const str = String(input);
+  const year = str.substring(0, 4);
+  const month = Number(str.substring(4, 6)); // 数値化して頭の0を消す
+  const day = Number(str.substring(6, 8));   // 数値化して頭の0を消す
+  
+  return `${year}年${month}月${day}日`;
+}
+
+// --- 動作確認 ---
+  b(formatDateWithSlash(inputData));   // 出力: "2020/02/14"
+  b(formatDateWithZero(inputData));    // 出力: "2020年02月14日"
+  b(formatDateWithoutZero(inputData)); // 出力: "2020年2月14日"
+  b(data.manifest_urls[]);
+
+ 
+// 関数：配列を受け取って { itag: URL } のオブジェクトを返す
+function createItagMap(urls) {
+  // 配列が空、または配列ではないデータが来たら空のオブジェクトを返す（安全対策）
+  if (!Array.isArray(urls)) return {};
+
+  const itagMap = {};
+
+  urls.forEach(url => {
+    // URLから「/itag/数字/」の「数字」部分だけを抜き出す
+    const match = url.match(/\/itag\/(\d+)\//);
+    
+    if (match) {
+      const itagNumber = match[1]; // マッチした数字（"233" など）
+      itagMap[itagNumber] = url;   // オブジェクトに追加
+    }
+  });
+
+  return itagMap;
+}
+
+
+  // ここで data に urls 配列（Data.urls）が格納される
+  const data1 = data.manifest_urls; 
+
+  // 関数に直接 data（配列）を渡して変換する
+  const resultObj = createItagMap(data1);
+
+  // 確認用：オブジェクトの中身を表示
+  console.log(resultObj);
+  
+  // 例：itag 233 のURLにアクセスしたい場合
+  console.log("233のURL:", resultObj["233"]);
 
 } catch (error) {
-  console.error("通信または解析に失敗しました:", error);
+  console.error("エラーが発生しました:", error);
 }
+
+
+
+} catch (error) {
+  c("通信または解析に失敗しました:", error);
+}
+</script>

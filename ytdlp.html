@@ -3,25 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <title>YouTube URL フォーマットチェッカー</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; background-color: #f9f9f9; color: #333; }
+    .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    input[type="text"] { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    button { padding: 10px 20px; background-color: #ff0000; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    button:hover { background-color: #cc0000; }
+    .result-section { margin-top: 25px; padding-top: 20px; border-top: 2px solid #eee; display: none; }
+    .info-block { margin-bottom: 15px; }
+    .info-label { font-weight: bold; color: #666; display: block; margin-bottom: 4px; }
+    .info-value { background: #f1f1f1; padding: 8px 12px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+    .url-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .url-link { display: inline-block; padding: 10px; background: #0073e6; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; transition: background 0.2s; word-break: break-all; }
+    .url-link:hover { background: #0059b3; }
+    .status-msg { margin-top: 10px; color: #666; font-style: italic; }
+  </style>
 </head>
 <body>
 
-  <!-- 1. HTMLの入力フォームとボタンを設置 -->
-  <div style="margin: 20px; font-family: sans-serif;">
+  <div class="container">
     <h3>YouTube 動画解析</h3>
-    <input type="text" id="youtubeUrlInput" placeholder="https://youtube.com..." style="width: 400px; padding: 8px;">
-    <button id="startBtn" style="padding: 8px 15px; cursor: pointer;">解析実行</button>
+    <div style="display: flex; gap: 10px;">
+      <input type="text" id="youtubeUrlInput" placeholder="https://youtube.com...">
+      <button id="startBtn">解析実行</button>
+    </div>
+    <div id="statusMessage" class="status-msg"></div>
+
+    <!-- 結果を表示するHTMLエリア -->
+    <div id="resultSection" class="result-section">
+      <div class="info-block">
+        <span class="info-label">チャンネル名</span>
+        <div id="resChannel" class="info-value"></div>
+      </div>
+      
+      <div class="info-block">
+        <span class="info-label">動画の説明文</span>
+        <div id="resDescription" class="info-value"></div>
+      </div>
+
+      <div class="info-block">
+        <span class="info-label">変換された日付（3パターン）</span>
+        <div id="resDates" class="info-value"></div>
+      </div>
+
+      <div class="info-block">
+        <span class="info-label">利用可能なフォーマット一覧 (クリックで開く)</span>
+        <div id="resUrls" class="url-list"></div>
+      </div>
+    </div>
   </div>
 
   <script>
-  // ログ出力用の共通関数
+  // コンソール用の共通関数（既存の仕様を維持）
   function b(th) {
     var now = new Date();
     c(now, th);
   }
 
   function c(text, context) {
-    // オブジェクトの場合は文字列に変換して見やすくする
     if (typeof context === "object") {
       context = JSON.stringify(context, null, 2);
     }
@@ -94,63 +133,92 @@
   }
 
   // --- メインの非同期処理を実行する関数 ---
-  // 引数として、テキストボックスから取得したURLを受け取るように変更
   async function main(targetUrl) {
     if (!targetUrl) {
       alert("URLを入力してください");
       return;
     }
 
+    const statusEl = document.getElementById("statusMessage");
+    const resultSecEl = document.getElementById("resultSection");
+    
+    statusEl.innerText = "解析中...";
+    resultSecEl.style.display = "none"; // 前回の結果を隠す
+
     let url = "https://xeroxapp032.vercel.app/yt-dlps-j?url=" + targetUrl;
 
     try {
       b("解析を開始します... URL: " + targetUrl);
       const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTPエラー! ステータス: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTPエラー! ステータス: ${response.status}`);
       
       const data = await response.json();
       
-      // 基本情報の出力
+      // --- コンソール出力（そのまま残す） ---
       b("動画データを受信しました");
       b(data.channel);
       b(data.description);
-      
-      // 日付データの変換と出力（アップロード日などが data.duration 等に入っている想定）
       const inputD = data.duration; 
       b(formatDateWithSlash(inputD));   
       b(formatDateWithZero(inputD));    
       b(formatDateWithoutZero(inputD)); 
 
-      // URLリスト（manifest_urls）の取得
       const data1 = data.manifest_urls; 
       if (!data1) {
+        statusEl.innerText = "エラー: manifest_urls がデータ内に見つかりません。";
         b("manifest_urls が見つかりませんでした。");
         return;
       }
 
-      // パターンA：{ "233": "URL" } の形式に変換
       const resultObj = createItagMap(data1);
       b("--- itag番号マップ ---");
       b(resultObj);
       
-      // パターンB：{ "1080p...": "URL" } の形式に変換（itag.json を使用）
       const finalFormatMap = await convertUrlsWithJsonFile(data1);
       b("--- フォーマット名マップ (itag.json使用) ---");
       b(finalFormatMap);
 
+      // --- 画面（HTML）への表示処理を追加 ---
+      document.getElementById("resChannel").innerText = data.channel || "なし";
+      document.getElementById("resDescription").innerText = data.description || "なし";
+      
+      // 3パターンの日付をまとめてテキストにする
+      document.getElementById("resDates").innerText = 
+        `パターン1: ${formatDateWithSlash(inputD)}\n` +
+        `パターン2: ${formatDateWithZero(inputD)}\n` +
+        `パターン3: ${formatDateWithoutZero(inputD)}`;
+
+      // URLリストのリンクボタンを生成して追加
+      const urlListContainer = document.getElementById("resUrls");
+      urlListContainer.innerHTML = ""; // いったん初期化
+
+      // finalFormatMap のオブジェクトの中身をループしてHTML要素を作る
+      Object.keys(finalFormatMap).forEach(formatName => {
+        const streamUrl = finalFormatMap[formatName];
+        
+        // <a> タグ（リンクボタン）を作成
+        const aTag = document.createElement("a");
+        aTag.href = streamUrl;
+        aTag.target = "_blank"; // 新しいタブで開く
+        aTag.className = "url-link";
+        aTag.innerText = `【${formatName}】を開く`;
+        
+        urlListContainer.appendChild(aTag);
+      });
+
+      // 処理成功したらステータスを消して結果エリアを表示
+      statusEl.innerText = "";
+      resultSecEl.style.display = "block";
+
     } catch (error) {
+      statusEl.innerText = "エラーが発生しました。コンソールを確認してください。";
       c("通信または解析に失敗しました:", error);
     }
   }
 
-  // 2. ボタンがクリックされたときのイベントを設定
+  // ボタンがクリックされたときのイベントを設定
   document.getElementById("startBtn").addEventListener("click", () => {
-    // テキストボックスに入力された文字列を取得
     const inputUrl = document.getElementById("youtubeUrlInput").value.trim();
-    
-    // main関数にURLを渡して実行
     main(inputUrl);
   });
   </script>

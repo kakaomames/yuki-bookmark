@@ -1,136 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube URL フォーマットチェッカー</title>
+</head>
+<body>
 
-<script>
-function b(th) {
-  var now = new Date();
-  c(now,th)
-}
-function c(text,cuntext) {
-  var t = "[ " + text + " ] " + context;
-  console.log(t);
-};
-// https://www.youtube.com/watch?v=-lZg4iHDWO4
-let url = "https://xeroxapp032.vercel.app/yt-dlps-j?url=" + URL
-try {
-  const response = await fetch(url);
+  <!-- 1. HTMLの入力フォームとボタンを設置 -->
+  <div style="margin: 20px; font-family: sans-serif;">
+    <h3>YouTube 動画解析</h3>
+    <input type="text" id="youtubeUrlInput" placeholder="https://youtube.com..." style="width: 400px; padding: 8px;">
+    <button id="startBtn" style="padding: 8px 15px; cursor: pointer;">解析実行</button>
+  </div>
 
-  // リクエストが成功したかチェック
-  if (!response.ok) {
-    throw new Error(`HTTPエラー! ステータス: ${response.status}`);
+  <script>
+  // ログ出力用の共通関数
+  function b(th) {
+    var now = new Date();
+    c(now, th);
   }
-  
-  // ここで初めてデータの中身を解析して取得する
-  const data = await response.json();
-  b(data);
-  b(data.channel);
-  b(data.description);
-  // テスト用のデータ
-const inputD = data.duration;
 
-// 1. スラッシュで分ける関数（2020/02/14）
-function formatDateWithSlash(input) {
-  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
-}
-
-// 2. 0を消さない「〇月〇日」の関数（2020年02月14日）
-function formatDateWithZero(input) {
-  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1年\$2月\$3日");
-}
-
-// 3. 0を消してスッキリさせる「〇月〇日」の関数（2020年2月14日）
-function formatDateWithoutZero(input) {
-  const str = String(input);
-  const year = str.substring(0, 4);
-  const month = Number(str.substring(4, 6)); // 数値化して頭の0を消す
-  const day = Number(str.substring(6, 8));   // 数値化して頭の0を消す
-  
-  return `${year}年${month}月${day}日`;
-}
-
-// --- 動作確認 ---
-  b(formatDateWithSlash(inputData));   // 出力: "2020/02/14"
-  b(formatDateWithZero(inputData));    // 出力: "2020年02月14日"
-  b(formatDateWithoutZero(inputData)); // 出力: "2020年2月14日"
-  b(data.manifest_urls[]);
-
- 
-// 関数：配列を受け取って { itag: URL } のオブジェクトを返す
-function createItagMap(urls) {
-  // 配列が空、または配列ではないデータが来たら空のオブジェクトを返す（安全対策）
-  if (!Array.isArray(urls)) return {};
-
-  const itagMap = {};
-
-  urls.forEach(url => {
-    // URLから「/itag/数字/」の「数字」部分だけを抜き出す
-    const match = url.match(/\/itag\/(\d+)\//);
-    
-    if (match) {
-      const itagNumber = match[1]; // マッチした数字（"233" など）
-      itagMap[itagNumber] = url;   // オブジェクトに追加
+  function c(text, context) {
+    // オブジェクトの場合は文字列に変換して見やすくする
+    if (typeof context === "object") {
+      context = JSON.stringify(context, null, 2);
     }
-  });
+    var t = "[ " + text + " ] " + context;
+    console.log(t);
+  }
 
-  return itagMap;
-}
-  async function convertUrlsWithJsonFile(urls) {
-  if (!Array.isArray(urls)) return {};
-
-  try {
-    // 1. 同じ階層にある itag.json を fetch して読み込む
-    const res = await fetch("./itag.json");
-    if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
-    const itagJsonData = await res.json();
-
-    // 2. 検索しやすいように { itag: "解像度 (コンテナ)" } の形に変換する
+  // 配列から itag を抜き出してマップ化する関数
+  function createItagMap(urls) {
+    if (!Array.isArray(urls)) return {};
     const itagMap = {};
-    itagJsonData.data.forEach(item => {
-      // 例: "1080p (mp4 / audio/video)" のような分かりやすい文字を作る
-      itagMap[item.itag] = `${item.resolution} (${item.container} / ${item.content})`;
-    });
-
-    // 3. urls 配列をループして、フォーマット名に変えていく
-    const result = {};
     urls.forEach(url => {
       const match = url.match(/\/itag\/(\d+)\//);
       if (match) {
-        const itagNumber = match[1]; // 数字部分を抽出
-        
-        // jsonにあればその情報、なければデフォルト名
-        const formatName = itagMap[itagNumber] || `未定義のフォーマット (itag ${itagNumber})`;
-        
-        result[formatName] = url;
+        const itagNumber = match[1];
+        itagMap[itagNumber] = url;
       }
     });
-
-    return result;
-
-  } catch (error) {
-    console.error("エラーが発生しました:", error);
-    return {};
+    return itagMap;
   }
-}
 
+  // itag.json を使ってフォーマット名のオブジェクトに変換する関数
+  async function convertUrlsWithJsonFile(urls) {
+    if (!Array.isArray(urls)) return {};
+    try {
+      const res = await fetch("./itag.json");
+      if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
+      const itagJsonData = await res.json();
 
+      const itagMap = {};
+      itagJsonData.data.forEach(item => {
+        itagMap[item.itag] = `${item.resolution} (${item.container} / ${item.content})`;
+      });
 
-  // ここで data に urls 配列（Data.urls）が格納される
-  const data1 = data.manifest_urls; 
+      const result = {};
+      urls.forEach(url => {
+        const match = url.match(/\/itag\/(\d+)\//);
+        if (match) {
+          const itagNumber = match[1];
+          const formatName = itagMap[itagNumber] || `未定義のフォーマット (itag ${itagNumber})`;
+          result[formatName] = url;
+        }
+      });
+      return result;
+    } catch (error) {
+      console.error("エラーが発生しました:", error);
+      return {};
+    }
+  }
 
-  // 関数に直接 data（配列）を渡して変換する
-  const resultObj = createItagMap(data1);
+  // 日付フォーマット変換用の関数群
+  function formatDateWithSlash(input) {
+    if (!input) return "日付なし";
+    return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
+  }
 
-  // 確認用：オブジェクトの中身を表示
-  console.log(resultObj);
-  
-  // 例：itag 233 のURLにアクセスしたい場合
-  console.log("233のURL:", resultObj["233"]);
+  function formatDateWithZero(input) {
+    if (!input) return "日付なし";
+    return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1年\$2月\$3日");
+  }
 
-} catch (error) {
-  console.error("エラーが発生しました:", error);
-}
+  function formatDateWithoutZero(input) {
+    if (!input) return "日付なし";
+    const str = String(input);
+    if (str.length !== 8) return str;
+    const year = str.substring(0, 4);
+    const month = Number(str.substring(4, 6));
+    const day = Number(str.substring(6, 8));
+    return `${year}年${month}月${day}日`;
+  }
 
+  // --- メインの非同期処理を実行する関数 ---
+  // 引数として、テキストボックスから取得したURLを受け取るように変更
+  async function main(targetUrl) {
+    if (!targetUrl) {
+      alert("URLを入力してください");
+      return;
+    }
 
+    let url = "https://xeroxapp032.vercel.app/yt-dlps-j?url=" + targetUrl;
 
-} catch (error) {
-  c("通信または解析に失敗しました:", error);
-}
-</script>
+    try {
+      b("解析を開始します... URL: " + targetUrl);
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTPエラー! ステータス: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // 基本情報の出力
+      b("動画データを受信しました");
+      b(data.channel);
+      b(data.description);
+      
+      // 日付データの変換と出力（アップロード日などが data.duration 等に入っている想定）
+      const inputD = data.duration; 
+      b(formatDateWithSlash(inputD));   
+      b(formatDateWithZero(inputD));    
+      b(formatDateWithoutZero(inputD)); 
+
+      // URLリスト（manifest_urls）の取得
+      const data1 = data.manifest_urls; 
+      if (!data1) {
+        b("manifest_urls が見つかりませんでした。");
+        return;
+      }
+
+      // パターンA：{ "233": "URL" } の形式に変換
+      const resultObj = createItagMap(data1);
+      b("--- itag番号マップ ---");
+      b(resultObj);
+      
+      // パターンB：{ "1080p...": "URL" } の形式に変換（itag.json を使用）
+      const finalFormatMap = await convertUrlsWithJsonFile(data1);
+      b("--- フォーマット名マップ (itag.json使用) ---");
+      b(finalFormatMap);
+
+    } catch (error) {
+      c("通信または解析に失敗しました:", error);
+    }
+  }
+
+  // 2. ボタンがクリックされたときのイベントを設定
+  document.getElementById("startBtn").addEventListener("click", () => {
+    // テキストボックスに入力された文字列を取得
+    const inputUrl = document.getElementById("youtubeUrlInput").value.trim();
+    
+    // main関数にURLを渡して実行
+    main(inputUrl);
+  });
+  </script>
+
+</body>
+</html>

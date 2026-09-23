@@ -56,189 +56,269 @@
   </div>
 
   <script>
-     // FFmpegインスタンスの初期設定
-  const { createFFmpeg, fetchFile } = FFmpeg;
-  const ffmpeg = createFFmpeg({ log: true });
+// FFmpegインスタンスの初期設定
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({ log: true });
 
-  // グローバル変数でデータを保持
-  let bestVideoUrl = "";
-  let bestAudioUrl = "";
-  let videoTitle = "combined_video"; // デフォルトのファイル名
-  // コンソール用の共通関数（既存の仕様を維持）
-  function b(th) {
-    var now = new Date();
-    c(now, th);
+// グローバル変数（選択されたURLや動画情報を保持）
+let selectedVideoUrl = "";
+let selectedAudioUrl = "";
+let videoTitle = "combined_video"; 
+
+// --- ログ出力用の共通関数（既存の仕様を維持） ---
+function b(th) {
+  var now = new Date();
+  c(now, th);
+}
+
+function c(text, context) {
+  if (typeof context === "object") {
+    context = JSON.stringify(context, null, 2);
   }
-    
+  var t = "[ " + text + " ] " + context;
+  console.log(t);
+}
 
-  function c(text, context) {
-    if (typeof context === "object") {
-      context = JSON.stringify(context, null, 2);
-    }
-    var t = "[ " + text + " ] " + context;
-    console.log(t);
-  }
+// itag.json を使ってフォーマット名のオブジェクトに変換する関数
+async function convertUrlsWithJsonFile(urls) {
+  if (!Array.isArray(urls)) return {};
+  try {
+    // タイムスタンプパラメータを付与してキャッシュを完璧に回避！
+    const timestamp = Date.now();
+    const res = await fetch(`./itag.json?t=${timestamp}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
+    const itagJsonData = await res.json();
 
-  // 配列から itag を抜き出してマップ化する関数
-  function createItagMap(urls) {
-    if (!Array.isArray(urls)) return {};
     const itagMap = {};
+    itagJsonData.data.forEach(item => {
+      itagMap[item.itag] = {
+        name: `${item.resolution} (${item.container} / ${item.content})`,
+        content: item.content
+      };
+    });
+
+    const result = {};
     urls.forEach(url => {
       const match = url.match(/\/itag\/(\d+)\//);
       if (match) {
         const itagNumber = match[1];
-        itagMap[itagNumber] = url;
+        const info = itagMap[itagNumber];
+        
+        if (info) {
+          result[info.name] = { url: url, content: info.content };
+        } else {
+          result[`未定義のフォーマット (itag ${itagNumber})`] = { url: url, content: "unknown" };
+        }
       }
     });
-    return itagMap;
+    return result;
+  } catch (error) {
+    console.error("エラーが発生しました:", error);
+    return {};
+  }
+}
+
+// 日付フォーマット変換用の関数群
+function formatDateWithSlash(input) {
+  if (!input) return "日付なし";
+  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
+}
+
+function formatDateWithZero(input) {
+  if (!input) return "日付なし";
+  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1年\$2月\$3日");
+}
+
+function formatDateWithoutZero(input) {
+  if (!input) return "日付なし";
+  const str = String(input);
+  if (str.length !== 8) return str;
+  const year = str.substring(0, 4);
+  const month = Number(str.substring(4, 6));
+  const day = Number(str.substring(6, 8));
+  return `${year}年${month}月${day}日`;
+}
+
+// --- メインの解析・ボタン生成処理 ---
+async function main(targetUrl) {
+  if (!targetUrl) {
+    alert("URLを入力してください");
+    return;
   }
 
-    const result = {};
-      bestVideoUrl = "";
-      bestAudioUrl = "";
+  const statusEl = document.getElementById("statusMessage");
+  const resultSecEl = document.getElementById("resultSection");
+  const mergeBtnEl = document.getElementById("autoMergeBtn");
+  
+  statusEl.innerText = "動画情報を解析中...";
+  resultSecEl.style.display = "none";
+  mergeBtnEl.style.display = "none";
+  
+  selectedVideoUrl = "";
+  selectedAudioUrl = "";
+  mergeBtnEl.innerText = "🎬 映像と音声を選択すると合体できます";
+  mergeBtnEl.disabled = true;
 
-  // itag.json を使ってフォーマット名のオブジェクトに変換する関数
-  async function convertUrlsWithJsonFile(urls) {
-    if (!Array.isArray(urls)) return {};
-    try {
-      var pass = "./itag.json?t="
-      var q = new Date();
-      var pass2 = pass + q;
-      const res = await fetch(pass2,{ cache: "no-store" });
-      if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
-      const itagJsonData = await res.json();
+  // ご指定の形式で文字列を細かく分割してURLを組み立て
+  var apiUrl = "https://" + "xeroxapp032" + ".vercel" + ".app" + "/yt-dlps-j" + "?url=" + encodeURIComponent(targetUrl);
 
-      const itagMap = {};
-      itagJsonData.data.forEach(item => {
-        itagMap[item.itag] = `${item.resolution} (${item.container} / ${item.content})`;
-      });
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error(`HTTPエラー! ステータス: ${response.status}`);
+    
+    const data = await response.json();
+    const inputD = data.duration; 
+    const data1 = data.manifest_urls; 
 
-      const result = {};
-      urls.forEach(url => {
-        const match = url.match(/\/itag\/(\d+)\//);
-        if (match) {
-          const itagNumber = match[1];
-          const formatName = itagMap[itagNumber] || `未定義のフォーマット (itag ${itagNumber})`;
-          result[formatName] = url;
-        }
-      });
-      return result;
-    } catch (error) {
-      console.error("エラーが発生しました:", error);
-      return {};
-    }
-  }
-
-  // 日付フォーマット変換用の関数群
-  function formatDateWithSlash(input) {
-    if (!input) return "日付なし";
-    return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
-  }
-
-  function formatDateWithZero(input) {
-    if (!input) return "日付なし";
-    return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1年\$2月\$3日");
-  }
-
-  function formatDateWithoutZero(input) {
-    if (!input) return "日付なし";
-    const str = String(input);
-    if (str.length !== 8) return str;
-    const year = str.substring(0, 4);
-    const month = Number(str.substring(4, 6));
-    const day = Number(str.substring(6, 8));
-    return `${year}年${month}月${day}日`;
-  }
-
-  // --- メインの非同期処理を実行する関数 ---
-  async function main(targetUrl) {
-    if (!targetUrl) {
-      alert("URLを入力してください");
+    if (!data1) {
+      statusEl.innerText = "エラー: manifest_urls が見つかりません。";
       return;
     }
 
-    const statusEl = document.getElementById("statusMessage");
-    const resultSecEl = document.getElementById("resultSection");
-    
-    statusEl.innerText = "解析中...";
-    resultSecEl.style.display = "none"; // 前回の結果を隠す
+    videoTitle = data.title || "youtube_video";
 
-    let url = "https://xeroxapp032.vercel.app/yt-dlps-j?url=" + targetUrl;
+    // コンソール出力
+    b("動画データを受信しました");
+    b(data.channel);
+    b(data.description);
+    b(formatDateWithSlash(inputD));   
+    b(formatDateWithZero(inputD));    
+    b(formatDateWithoutZero(inputD)); 
+    b(data1);
 
-    try {
-      b("解析を開始します... URL: " + targetUrl);
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTPエラー! ステータス: ${response.status}`);
+    const finalFormatMap = await convertUrlsWithJsonFile(data1);
+    b("--- フォーマット名マップ (itag.json使用) ---");
+    b(finalFormatMap);
+
+    // HTMLへの表示反映
+    document.getElementById("resTitle").innerText = videoTitle;
+    document.getElementById("resChannel").innerText = data.channel || "なし";
+    document.getElementById("resDescription").innerText = data.description || "なし";
+    document.getElementById("resDates").innerText = 
+      `パターン1: ${formatDateWithSlash(inputD)}\n` +
+      `パターン2: ${formatDateWithZero(inputD)}\n` +
+      `パターン3: ${formatDateWithoutZero(inputD)}`;
+
+    // ボタンの動的生成
+    const urlListContainer = document.getElementById("resUrls");
+    urlListContainer.innerHTML = "";
+
+    Object.keys(finalFormatMap).forEach(formatName => {
+      const item = finalFormatMap[formatName];
       
-      const data = await response.json();
-      
-      // --- コンソール出力（そのまま残す） ---
-      b("動画データを受信しました");
-      b(data.channel);
-      b(data.description);
-      const inputD = data.duration; 
-      b(formatDateWithSlash(inputD));   
-      b(formatDateWithZero(inputD));    
-      b(formatDateWithoutZero(inputD)); 
+      const btn = document.createElement("button");
+      btn.className = "url-link"; 
+      btn.style.display = "block";
+      btn.style.width = "100%";
+      btn.style.marginBottom = "5px";
+      btn.style.textAlign = "left";
+      btn.innerText = `【${formatName}】を合体用に選択`;
 
-      const data1 = data.manifest_urls; 
-      if (!data1) {
-        statusEl.innerText = "エラー: manifest_urls がデータ内に見つかりません。";
-        b("manifest_urls が見つかりませんでした。");
-        return;
-      }
-
-      const resultObj = createItagMap(data1);
-      b("--- itag番号マップ ---");
-      b(resultObj);
-      
-      const finalFormatMap = await convertUrlsWithJsonFile(data1);
-      b("--- フォーマット名マップ (itag.json使用) ---");
-      b(finalFormatMap);
-
-      // --- 画面（HTML）への表示処理を追加 ---
-      document.getElementById("resChannel").innerText = data.channel || "なし";
-      document.getElementById("resDescription").innerText = data.description || "なし";
-      
-      // 3パターンの日付をまとめてテキストにする
-      document.getElementById("resDates").innerText = 
-        `パターン1: ${formatDateWithSlash(inputD)}\n` +
-        `パターン2: ${formatDateWithZero(inputD)}\n` +
-        `パターン3: ${formatDateWithoutZero(inputD)}`;
-
-      // URLリストのリンクボタンを生成して追加
-      const urlListContainer = document.getElementById("resUrls");
-      urlListContainer.innerHTML = ""; // いったん初期化
-
-      // finalFormatMap のオブジェクトの中身をループしてHTML要素を作る
-      Object.keys(finalFormatMap).forEach(formatName => {
-        const streamUrl = finalFormatMap[formatName];
+      btn.addEventListener("click", () => {
+        if (item.content === "video") {
+          selectedVideoUrl = item.url;
+          b("映像が選択されました: " + formatName);
+        } else if (item.content === "audio") {
+          selectedAudioUrl = item.url;
+          b("音声が選択されました: " + formatName);
+        } else {
+          selectedVideoUrl = item.url;
+          b("不明なフォーマット(映像として選択): " + formatName);
+        }
         
-        // <a> タグ（リンクボタン）を作成
-        const aTag = document.createElement("a");
-        aTag.href = streamUrl;
-        aTag.target = "_blank"; // 新しいタブで開く
-        aTag.className = "url-link";
-        aTag.innerText = `【${formatName}】を開く`;
-        
-        urlListContainer.appendChild(aTag);
+        updateMergeButtonStatus();
       });
+      
+      urlListContainer.appendChild(btn);
+    });
 
-      // 処理成功したらステータスを消して結果エリアを表示
-      statusEl.innerText = "";
-      resultSecEl.style.display = "block";
+    statusEl.innerText = "";
+    resultSecEl.style.display = "block";
+    mergeBtnEl.style.display = "block";
 
-    } catch (error) {
-      statusEl.innerText = "エラーが発生しました。コンソールを確認してください。";
-      c("通信または解析に失敗しました:", error);
-    }
+  } catch (error) {
+    statusEl.innerText = "解析に失敗しました。";
+    console.error(error);
   }
+}
 
-  // ボタンがクリックされたときのイベントを設定
-  document.getElementById("startBtn").addEventListener("click", () => {
-    const inputUrl = document.getElementById("youtubeUrlInput").value.trim();
-    main(inputUrl);
-  });
+// 合体ボタンの状態とテキストを更新する関数
+function updateMergeButtonStatus() {
+  const mergeBtnEl = document.getElementById("autoMergeBtn");
+  
+  if (selectedVideoUrl && selectedAudioUrl) {
+    mergeBtnEl.innerText = "🎬 準備完了！この2つを合体してダウンロード";
+    mergeBtnEl.disabled = false;
+    mergeBtnEl.style.backgroundColor = "#28a745"; 
+  } else if (selectedVideoUrl) {
+    mergeBtnEl.innerText = "🎵 次は音声をリストから選んでクリックしてください";
+    mergeBtnEl.disabled = true;
+    mergeBtnEl.style.backgroundColor = "#6c757d";
+  } else if (selectedAudioUrl) {
+    mergeBtnEl.innerText = "📹 次は映像をリストから選んでクリックしてください";
+    mergeBtnEl.disabled = true;
+    mergeBtnEl.style.backgroundColor = "#6c757d";
+  }
+}
+
+// --- FFmpegによる合体・ダウンロード処理（M3U8直接読み込みストリーミング版） ---
+async function startMerging() {
+  const statusEl = document.getElementById("statusMessage");
+  const mergeBtnEl = document.getElementById("autoMergeBtn");
+  
+  try {
+    mergeBtnEl.disabled = true;
+    statusEl.innerText = "FFmpegエンジンを起動中... (初回は20秒ほどかかります)";
+    
+    if (!ffmpeg.isLoaded()) {
+      await ffmpeg.load();
+    }
+
+    statusEl.innerText = "M3U8ストリームから直接合体（ストリーミング通信）しています... (数十秒かかります)";
+    
+    // アスキー文字(M3U8)であるため、ローカルの仮想ファイルは挟まず、URLを直接FFmpegの「-i」に投入
+    await ffmpeg.run(
+      '-i', selectedVideoUrl,
+      '-i', selectedAudioUrl,
+      '-c:v', 'copy',
+      '-c:a', 'aac',
+      'output.mp4'
+    );
+
+    statusEl.innerText = "合体完了！保存ファイルを出力中...";
+    const mergedData = ffmpeg.FS('readFile', 'output.mp4');
+
+    const safeTitle = videoTitle.replace(/[\\/:*?"<>|]/g, "_");
+    const blob = new Blob([mergedData.buffer], { type: 'video/mp4' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.download = `${safeTitle}.mp4`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // 今回生成した仮想ファイルのみクリーンアップ
+    ffmpeg.FS('unlink', 'output.mp4');
+
+    statusEl.innerText = `🎉 結合完了！「${safeTitle}.mp4」がダウンロードされました。`;
+
+  } catch (error) {
+    console.error(error);
+    statusEl.innerText = "合体処理中にエラーが発生しました。コンソールを確認してください。";
+  } finally {
+    mergeBtnEl.disabled = false;
+    updateMergeButtonStatus();
+  }
+}
+
+// --- ボタンイベントの紐付け ---
+document.getElementById("startBtn").addEventListener("click", () => {
+  main(document.getElementById("youtubeUrlInput").value.trim());
+});
+
+document.getElementById("autoMergeBtn").addEventListener("click", startMerging);
+
   </script>
 
 </body>

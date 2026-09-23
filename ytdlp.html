@@ -1,0 +1,17 @@
+// https://www.youtube.com/watch?v=-lZg4iHDWO4
+let url = "https://xeroxapp032.vercel.app/yt-dlps-j?url=" + URL
+try {
+  const response = await fetch(url);
+
+  // リクエストが成功したかチェック
+  if (!response.ok) {
+    throw new Error(`HTTPエラー! ステータス: ${response.status}`);
+  }
+
+  // ここで初めてデータの中身を解析して取得する
+  const data = await response.json();
+  console.log(data);
+
+} catch (error) {
+  console.error("通信または解析に失敗しました:", error);
+}

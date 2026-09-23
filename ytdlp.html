@@ -331,24 +331,64 @@ function updateMergeButtonStatus() {
 }
 
 // --- FFmpegによる合体・ダウンロード処理（M3U8直接読み込みストリーミング版） ---
+// --- FFmpegによる合体・ダウンロード処理（M3U8テキスト内包・ローカル偽装版） ---
 async function startMerging() {
   const statusEl = document.getElementById("statusMessage");
   const mergeBtnEl = document.getElementById("autoMergeBtn");
   
   try {
     mergeBtnEl.disabled = true;
-    statusEl.innerText = "FFmpegエンジンを起動中... (初回は20秒ほどかかります)";
+    statusEl.innerText = "FFmpegエンジンを起動中...";
     
     if (!ffmpeg.isLoaded()) {
       await ffmpeg.load();
     }
 
-    statusEl.innerText = "M3U8ストリームから直接合体（ストリーミング通信）しています... (数十秒かかります)";
+    statusEl.innerText = "M3U8インデックス情報を生成中...";
     
-    // アスキー文字(M3U8)であるため、ローカルの仮想ファイルは挟まず、URLを直接FFmpegの「-i」に投入
+    // 💡【新ロジック】FFmpegがhttps通信できないのを回避するため、
+    // JavaScript側でM3U8のアスキーテキストを一旦代わりにfetchして読み込みます。
+    const videoM3u8Res = await fetch(selectedVideoUrl);
+    const audioM3u8Res = await fetch(selectedAudioUrl);
+    
+    if (!videoM3u8Res.ok || !audioM3u8Res.ok) {
+      throw new Error("M3U8プレイリストファイルの事前取得に失敗しました。");
+    }
+    
+    let videoM3u8Text = await videoM3u8Res.text();
+    let audioM3u8Text = await audioM3u8Res.text();
+
+    // 💡【重要】M3U8内部の細切れ動画URL（セグメント）を、絶対パス（https://...）に書き換えるハック
+    // これにより、FFmpegはローカルのM3U8を読みつつ、中のデータだけを正しくYouTubeサーバーにリクエストできます。
+    const videoBaseUrl = selectedVideoUrl.substring(0, selectedVideoUrl.lastIndexOf('/') + 1);
+    const audioBaseUrl = selectedAudioUrl.substring(0, selectedAudioUrl.lastIndexOf('/') + 1);
+    
+    // 改行コードごとにURL行を補正
+    videoM3u8Text = videoM3u8Text.split('\n').map(line => {
+      if (line.trim() && !line.startsWith('#')) {
+        return line.startsWith('http') ? line : videoBaseUrl + line;
+      }
+      return line;
+    }).join('\n');
+
+    audioM3u8Text = audioM3u8Text.split('\n').map(line => {
+      if (line.trim() && !line.startsWith('#')) {
+        return line.startsWith('http') ? line : audioBaseUrl + line;
+      }
+      return line;
+    }).join('\n');
+
+    // 💡FFmpegの仮想ファイルシステム内に、アスキー文字データとして直接保存します
+    ffmpeg.FS('writeFile', 'local_video.m3u8', new TextEncoder().encode(videoM3u8Text));
+    ffmpeg.FS('writeFile', 'local_audio.m3u8', new TextEncoder().encode(audioM3u8Text));
+
+    statusEl.innerText = "動画と音声を結合（マージ）しています... (動画の長さに比例して数十秒かかります)";
+    
+    // 💡入力ファイルを、作成したローカルの仮想M3U8ファイル（-i）に切り替えて実行！
     await ffmpeg.run(
-      '-i', selectedVideoUrl,
-      '-i', selectedAudioUrl,
+      '-allowed_extensions', 'ALL', // m3u8内の外部リソース読み込みを許可するフラグ
+      '-i', 'local_video.m3u8',
+      '-i', 'local_audio.m3u8',
       '-c:v', 'copy',
       '-c:a', 'aac',
       'output.mp4'
@@ -357,6 +397,7 @@ async function startMerging() {
     statusEl.innerText = "合体完了！保存ファイルを出力中...";
     const mergedData = ffmpeg.FS('readFile', 'output.mp4');
 
+    // 特殊記号を排除して動画タイトル.mp4 で保存
     const safeTitle = videoTitle.replace(/[\\/:*?"<>|]/g, "_");
     const blob = new Blob([mergedData.buffer], { type: 'video/mp4' });
     const downloadUrl = URL.createObjectURL(blob);
@@ -367,7 +408,9 @@ async function startMerging() {
     a.click();
     document.body.removeChild(a);
 
-    // 今回生成した仮想ファイルのみクリーンアップ
+    // 仮想ファイルシステムのクリーンアップ
+    ffmpeg.FS('unlink', 'local_video.m3u8');
+    ffmpeg.FS('unlink', 'local_audio.m3u8');
     ffmpeg.FS('unlink', 'output.mp4');
 
     statusEl.innerText = `🎉 結合完了！「${safeTitle}.mp4」がダウンロードされました。`;
@@ -380,6 +423,7 @@ async function startMerging() {
     updateMergeButtonStatus();
   }
 }
+
 
 // --- ボタンイベントの紐付け ---
 document.getElementById("startBtn").addEventListener("click", () => {

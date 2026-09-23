@@ -86,7 +86,10 @@
   async function convertUrlsWithJsonFile(urls) {
     if (!Array.isArray(urls)) return {};
     try {
-      const res = await fetch("./itag.json");
+      var pass = "./itag.json?t="
+      var q = new Date();
+      var pass2 = pass + q;
+      const res = await fetch(pass2,{ cache: "no-store" });
       if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
       const itagJsonData = await res.json();
 

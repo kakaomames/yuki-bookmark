@@ -20,6 +20,8 @@
   </style>
 </head>
 <body>
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.9.4/dist/ffmpeg.min.js"></script>
+  <script src="https://unpkg.com/coi-serviceworker@0.1.7/coi-serviceworker.min.js"></script>
 
   <div class="container">
     <h3>YouTube 動画解析</h3>
@@ -54,11 +56,20 @@
   </div>
 
   <script>
+     // FFmpegインスタンスの初期設定
+  const { createFFmpeg, fetchFile } = FFmpeg;
+  const ffmpeg = createFFmpeg({ log: true });
+
+  // グローバル変数でデータを保持
+  let bestVideoUrl = "";
+  let bestAudioUrl = "";
+  let videoTitle = "combined_video"; // デフォルトのファイル名
   // コンソール用の共通関数（既存の仕様を維持）
   function b(th) {
     var now = new Date();
     c(now, th);
   }
+    
 
   function c(text, context) {
     if (typeof context === "object") {
@@ -81,6 +92,10 @@
     });
     return itagMap;
   }
+
+    const result = {};
+      bestVideoUrl = "";
+      bestAudioUrl = "";
 
   // itag.json を使ってフォーマット名のオブジェクトに変換する関数
   async function convertUrlsWithJsonFile(urls) {

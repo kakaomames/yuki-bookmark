@@ -92,7 +92,13 @@
     <div id="statusMessage" class="status-msg"></div>
 
     <!-- 結果を表示するHTMLエリア -->
-    <div id="resultSection" class="result-section">
+      <div id="resultSection" class="result-section">
+      <!-- 修正：行方不明だった動画タイトルの表示エリアを追加 -->
+      <div class="info-block">
+        <span class="info-label">動画タイトル</span>
+        <div id="resTitle" class="info-value" style="font-weight: bold;"></div>
+      </div>
+
       <div class="info-block">
         <span class="info-label">チャンネル名</span>
         <div id="resChannel" class="info-value"></div>
@@ -109,9 +115,12 @@
       </div>
 
       <div class="info-block">
-        <span class="info-label">利用可能なフォーマット一覧 (クリックで開く)</span>
+        <span class="info-label">利用可能なフォーマット一覧 (クリックで選択)</span>
         <div id="resUrls" class="url-list"></div>
       </div>
+
+      <!-- 修正：行方不明だった自動合体ボタンをここに配置 -->
+      <button id="autoMergeBtn" class="merge-btn" disabled>🎬 映像と音声を選択すると合体できます</button>
     </div>
   </div>
 

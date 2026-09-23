@@ -39,6 +39,28 @@
     { "itag": 140, "container": "m4a", "content": "audio", "resolution": "-", "bitrate": "128k" },
     { "itag": 141, "container": "m4a", "content": "audio", "resolution": "-", "bitrate": "256k" },
     { "itag": 151, "container": "hls", "content": "audio/video", "resolution": "72p" },
+       { "itag": 229, "container": "m3u8", "content": "video", "resolution": "240p (HLS)" },
+    { "itag": 230, "container": "m3u8", "content": "video", "resolution": "360p (HLS)" },
+    { "itag": 231, "container": "m3u8", "content": "video", "resolution": "480p (HLS)" },
+    { "itag": 269, "container": "m3u8", "content": "video", "resolution": "144p (HLS)" },
+    { "itag": 270, "container": "m3u8", "content": "video", "resolution": "1080p (HLS)" },
+    { "itag": 311, "container": "m3u8", "content": "video", "resolution": "720p60 (HLS)" },
+    { "itag": 312, "container": "m3u8", "content": "video", "resolution": "1080p60 (HLS)" },
+    
+    { "itag": 233, "container": "m3u8", "content": "audio", "resolution": "音声のみ (低音質/HLS)" },
+    { "itag": 234, "container": "m3u8", "content": "audio", "resolution": "音声のみ (標準/HLS)" },
+    
+    { "itag": 602, "container": "m3u8", "content": "video", "resolution": "144p (HLS/VP9)" },
+    { "itag": 603, "container": "m3u8", "content": "video", "resolution": "144p (HLS/VP9-HFR)" },
+    { "itag": 604, "container": "m3u8", "content": "video", "resolution": "240p (HLS/VP9)" },
+    { "itag": 605, "container": "m3u8", "content": "video", "resolution": "360p (HLS/VP9)" },
+    { "itag": 606, "container": "m3u8", "content": "video", "resolution": "480p (HLS/VP9)" },
+    { "itag": 612, "container": "m3u8", "content": "video", "resolution": "720p60 (HLS/VP9)" },
+    { "itag": 617, "container": "m3u8", "content": "video", "resolution": "1080p60 (HLS/VP9)" },
+    { "itag": 625, "container": "m3u8", "content": "video", "resolution": "2160p [4K] (HLS/VP9)" },
+
+
+    
     { "itag": 160, "container": "mp4", "content": "video", "resolution": "144p" },
     { "itag": 167, "container": "webm", "content": "video", "resolution": "360p" },
     { "itag": 168, "container": "webm", "content": "video", "resolution": "480p" },

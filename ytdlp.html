@@ -1,9 +1,9 @@
-
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
+  <!-- GitHub Pages 隔離解除用スクリプト -->
+  <script src="coi-serviceworker.js"></script>
   <title>YouTube URL フォーマットチェッカー</title>
   <style>
     body { font-family: sans-serif; margin: 20px; background-color: #f9f9f9; color: #333; }
@@ -16,23 +16,18 @@
     .info-label { font-weight: bold; color: #666; display: block; margin-bottom: 4px; }
     .info-value { background: #f1f1f1; padding: 8px 12px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
     .url-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
-    .url-link { display: inline-block; padding: 10px; background: #0073e6; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; transition: background 0.2s; word-break: break-all; }
+    .url-link { display: inline-block; padding: 10px; background: #0073e6; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; transition: background 0.2s; word-break: break-all; text-align: left; border: none; cursor: pointer; font-weight: bold; }
     .url-link:hover { background: #0059b3; }
     .status-msg { margin-top: 10px; color: #666; font-style: italic; font-weight: bold; }
-    
-    /* 追加：合体ボタンのスタイル */
     .merge-btn { display: none; width: 100%; padding: 15px; margin-top: 15px; background-color: #6c757d; color: white; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
-  <script src="https://unpkg.com"></script>
-  <script src="coi-serviceworker.min.js"></script>
 
   <!-- Geminiログコンソール自動読み込みスクリプト -->
   <script>
     (function() {
       if (document.getElementById('gemini-log-container')) return;
-
       const style = document.createElement('style');
       style.innerHTML = '#gemini-log-container{position:fixed;bottom:20px;right:20px;width:350px;height:250px;background:rgba(0,0,0,0.9);color:#fff;font-family:monospace;font-size:13px;border:2px solid #444;border-radius:10px;padding:10px;z-index:2147483647;display:flex;flex-direction:column;box-shadow:0 8px 30px rgba(0,0,0,0.8);resize:both;overflow:hidden}#gemini-log-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #444;margin-bottom:8px;padding-bottom:5px;color:#aaa;font-weight:bold}#gemini-log-content{flex:1;overflow-y:auto;padding:5px}.log-entry{margin-bottom:4px;word-break:break-all;border-bottom:1px solid #222}.log-INFO{color:#fff}.log-WARN{color:#ffd32a}.log-ERROR{color:#ff4d4d;font-weight:bold}.btn-action{background:#333;border:1px solid #555;color:#fff;cursor:pointer;padding:2px 8px;border-radius:4px;font-size:10px;margin-left:5px}';
       document.head.appendChild(style);
@@ -57,7 +52,6 @@
         console[m] = function(...a) {
           if (a.some(x => typeof x === 'string' && x.includes('post-exception status'))) return;
           const msg = a.map(x => x instanceof Error ? '[ERROR] ' + x.name + ': ' + x.message : typeof x === 'object' ? JSON.stringify(x) : x).join(' ');
-          // logの場合はINFO、それ以外はメソッド名を大文字にして渡す (バグ修正)
           window.missionLog(m === 'log' ? 'INFO' : m.toUpperCase(), msg);
           if (o) o.apply(console, a);
         };
@@ -91,7 +85,12 @@
 
     <!-- 結果を表示するHTMLエリア -->
     <div id="resultSection" class="result-section">
-      <!-- 修正：行方不明だった動画タイトルの表示エリアを追加 -->
+      
+      <!-- ページ内再生用のビデオプレイヤー枠 -->
+      <div style="text-align: center; margin-top: 15px;">
+        <video id="videoPlayer" controls style="width: 100%; max-width: 640px; border-radius: 6px; background: #000; display: none;"></video>
+      </div>
+
       <div class="info-block">
         <span class="info-label">動画タイトル</span>
         <div id="resTitle" class="info-value" style="font-weight: bold;"></div>
@@ -117,240 +116,270 @@
         <div id="resUrls" class="url-list"></div>
       </div>
 
-      <!-- 修正：行方不明だった自動合体ボタンをここに配置 -->
+      <!-- マスタープレイリスト生成・再生ボタン -->
       <button id="autoMergeBtn" class="merge-btn" disabled>🎬 映像と音声を選択すると合体できます</button>
     </div>
   </div>
 
-  <script>
-const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
+<script>
+  let selectedVideoUrl = "";
+  let selectedAudioUrl = "";
+  let videoTitle = "combined_video"; 
+  let hlsInstance = null;
 
-let selectedVideoUrl = "";
-let selectedAudioUrl = "";
-let videoTitle = "combined_video"; 
-
-function b(th) {
-  var now = new Date();
-  c(now, th);
-}
-
-function c(text, context) {
-  if (typeof context === "object") {
-    context = JSON.stringify(context, null, 2);
+  function b(th) {
+    var now = new Date();
+    c(now, th);
   }
-  var t = "[ " + text + " ] " + context;
-  console.log(t);
-}
 
-async function convertUrlsWithJsonFile(urls) {
-  if (!Array.isArray(urls)) return {};
-  try {
-    const timestamp = Date.now();
-    const res = await fetch(`./itag.json?t=${timestamp}`, { cache: "no-store" });
-    if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
-    const itagJsonData = await res.json();
+  function c(text, context) {
+    if (typeof context === "object") {
+      context = JSON.stringify(context, null, 2);
+    }
+    var t = "[ " + text + " ] " + context;
+    console.log(t);
+  }
 
-    const itagMap = {};
-    itagJsonData.data.forEach(item => {
-      itagMap[item.itag] = {
-        name: `${item.resolution} (${item.container} / ${item.content})`,
-        content: item.content
-      };
-    });
-
-    const result = {};
-    urls.forEach(url => {
-      const match = url.match(/\/itag\/(\d+)\//);
-      if (match) {
-        const itagNumber = match[1];
-        const info = itagMap[itagNumber];
-        
-        if (info) {
-          result[info.name] = { url: url, content: info.content };
-        } else {
-          result[`未定義のフォーマット (itag ${itagNumber})`] = { url: url, content: "unknown" };
-        }
+  // プレイヤー再生ライブラリ (hls.js) を動的ロード
+  function loadHlsLibrary() {
+    return new Promise((resolve) => {
+      if (window.Hls) {
+        resolve();
+        return;
       }
+      const script = document.createElement("script");
+      script.src = "https://jsdelivr.net";
+      script.onload = () => resolve();
+      document.head.appendChild(script);
     });
-    return result;
-  } catch (error) {
-    console.error("エラーが発生しました:", error);
-    return {};
-  }
-}
-
-// 修正：正規表現末尾の不要なバックスラッシュ（\$）を削除
-function formatDateWithSlash(input) {
-  if (!input) return "日付なし";
-  return String(input).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1/$2/$3");
-}
-
-function formatDateWithZero(input) {
-  if (!input) return "日付なし";
-  return String(input).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1年$2月$3日");
-}
-
-function formatDateWithoutZero(input) {
-  if (!input) return "日付なし";
-  const str = String(input);
-  if (str.length !== 8) return str;
-  const year = str.substring(0, 4);
-  const month = Number(str.substring(4, 6));
-  const day = Number(str.substring(6, 8));
-  return `${year}年${month}月${day}日`;
-}
-
-async function main(targetUrl) {
-  if (!targetUrl) {
-    alert("URLを入力してください");
-    return;
   }
 
-  const statusEl = document.getElementById("statusMessage");
-  const resultSecEl = document.getElementById("resultSection");
-  const mergeBtnEl = document.getElementById("autoMergeBtn");
-  
-  statusEl.innerText = "動画情報を解析中...";
-  resultSecEl.style.display = "none";
-  mergeBtnEl.style.display = "none";
-  
-  selectedVideoUrl = "";
-  selectedAudioUrl = "";
-  mergeBtnEl.innerText = "🎬 映像と音声を選択すると合体できます";
-  mergeBtnEl.disabled = true;
-  mergeBtnEl.style.backgroundColor = "#6c757d";
+  async function convertUrlsWithJsonFile(urls) {
+    if (!Array.isArray(urls)) return {};
+    try {
+      const timestamp = Date.now();
+      const res = await fetch(`./itag.json?t=${timestamp}`, { cache: "no-store" });
+      if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
+      const itagJsonData = await res.json();
 
-  var apiUrl = "https://" + "xeroxapp032" + ".vercel" + ".app" + "/yt-dlps-j" + "?url=" + encodeURIComponent(targetUrl);
+      const itagMap = {};
+      itagJsonData.data.forEach(item => {
+        itagMap[item.itag] = {
+          name: `${item.resolution} (${item.container} / ${item.content})`,
+          content: item.content
+        };
+      });
 
-  try {
-    const response = await fetch(apiUrl);
-    if (!response.ok) throw new Error(`HTTPエラー! ステータス: ${response.status}`);
-    
-    const data = await response.json();
-    const inputD = data.duration; 
-    const data1 = data.manifest_urls; 
+      const result = {};
+      urls.forEach(url => {
+        const match = url.match(/\/itag\/(\d+)\//);
+        if (match) {
+          const itagNumber = match[1];
+          const info = itagMap[itagNumber];
+          
+          if (info) {
+            result[info.name] = { url: url, content: info.content };
+          } else {
+            result[`未定義のフォーマット (itag ${itagNumber})`] = { url: url, content: "unknown" };
+          }
+        }
+      });
+      return result;
+    } catch (error) {
+      console.error("エラーが発生しました:", error);
+      return {};
+    }
+  }
 
-    if (!data1) {
-      statusEl.innerText = "エラー: manifest_urls が見つかりません。";
+  function formatDateWithSlash(input) {
+    if (!input) return "日付なし";
+    return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
+  }
+
+  function formatDateWithZero(input) {
+    if (!input) return "日付なし";
+    return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1年\$2月\$3日");
+  }
+
+  function formatDateWithoutZero(input) {
+    if (!input) return "日付なし";
+    const str = String(input);
+    if (str.length !== 8) return str;
+    const year = str.substring(0, 4);
+    const month = Number(str.substring(4, 6));
+    const day = Number(str.substring(6, 8));
+    return `${year}年${month}月${day}日`;
+  }
+
+  async function main(targetUrl) {
+    if (!targetUrl) {
+      alert("URLを入力してください");
       return;
     }
 
-    videoTitle = data.title || "youtube_video";
+    const statusEl = document.getElementById("statusMessage");
+    const resultSecEl = document.getElementById("resultSection");
+    const mergeBtnEl = document.getElementById("autoMergeBtn");
+    
+    statusEl.innerText = "動画情報を解析中...";
+    resultSecEl.style.display = "none";
+    mergeBtnEl.style.display = "none";
+    
+    selectedVideoUrl = "";
+    selectedAudioUrl = "";
+    mergeBtnEl.innerText = "🎬 映像と音声を選択すると合体できます";
+    mergeBtnEl.disabled = true;
+    mergeBtnEl.style.backgroundColor = "#6c757d";
 
-    b("動画データを受信しました");
-    b(data.channel);
-    b(data.description);
-    b(formatDateWithSlash(inputD));   
-    b(formatDateWithZero(inputD));    
-    b(formatDateWithoutZero(inputD)); 
-    b(data1);
+    var apiUrl = "https://" + "xeroxapp032" + ".vercel" + ".app" + "/yt-dlps-j" + "?url=" + encodeURIComponent(targetUrl);
 
-    const finalFormatMap = await convertUrlsWithJsonFile(data1);
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) throw new Error(`HTTPエラー! ステータス: ${response.status}`);
+      
+      const data = await response.json();
+      const inputD = data.duration; 
+      const data1 = data.manifest_urls; 
 
-b("--- フォーマット名マップ (itag.json使用) ---");
-b(finalFormatMap);
-document.getElementById("resTitle").innerText = videoTitle;
-document.getElementById("resChannel").innerText = data.channel || "なし";
-document.getElementById("resDescription").innerText = data.description || "なし";
-document.getElementById("resDates").innerText =
-パターン1: ${formatDateWithSlash(inputD)}\n +
-パターン2: ${formatDateWithZero(inputD)}\n +
-パターン3: ${formatDateWithoutZero(inputD)};
-const urlListContainer = document.getElementById("resUrls");
-urlListContainer.innerHTML = "";
-Object.keys(finalFormatMap).forEach(formatName => {
-const item = finalFormatMap[formatName];
-const btn = document.createElement("button");
-btn.className = "url-link";
-btn.style.display = "block";
-btn.style.width = "100%";
-btn.style.marginBottom = "5px";
-btn.style.textAlign = "left";
-btn.innerText = "【${formatName}】を合体用に選択";
-btn.addEventListener("click", () => {
-if (item.content === "video") {
-selectedVideoUrl = item.url;
-b("映像が選択されました: " + formatName);
-} else if (item.content === "audio") {
-selectedAudioUrl = item.url;
-b("音声が選択されました: " + formatName);
-} else {
-selectedVideoUrl = item.url;
-b("不明なフォーマット(映像として選択): " + formatName);
-}
-updateMergeButtonStatus();
-});
-urlListContainer.appendChild(btn);
-});
-statusEl.innerText = "";
-resultSecEl.style.display = "block";
-mergeBtnEl.style.display = "block";
-} catch (error) {
-statusEl.innerText = "解析に失敗しました。";
-console.error(error);
-}
-}
-function updateMergeButtonStatus() {
-const mergeBtnEl = document.getElementById("autoMergeBtn");
-if (selectedVideoUrl && selectedAudioUrl) {
-mergeBtnEl.innerText = "🎬 準備完了！この2つを合体してダウンロード";
-mergeBtnEl.disabled = false;
-mergeBtnEl.style.backgroundColor = "#28a745";
-} else if (selectedVideoUrl) {
-mergeBtnEl.innerText = "🎵 次は音声をリストから選んでクリックしてください";
-mergeBtnEl.disabled = true;
-mergeBtnEl.style.backgroundColor = "#6c757d";
-} else if (selectedAudioUrl) {
-mergeBtnEl.innerText = "📹 次は映像をリストから選んでクリックしてください";
-mergeBtnEl.disabled = true;
-mergeBtnEl.style.backgroundColor = "#6c757d";
-}
-}
-async function startMerging() {
-const statusEl = document.getElementById("statusMessage");
-const mergeBtnEl = document.getElementById("autoMergeBtn");
-try {
-mergeBtnEl.disabled = true;
-statusEl.innerText = "FFmpegエンジンを起動中... (初回は20秒ほどかかります)";
-if (!ffmpeg.isLoaded()) {
-await ffmpeg.load();
-}
-statusEl.innerText = "M3U8ストリームから直接合体（ストリーミング通信）しています... (数十秒かかります)";
-await ffmpeg.run(
-'-i', selectedVideoUrl,
-'-i', selectedAudioUrl,
-'-c:v', 'copy',
-'-c:a', 'aac',
-'output.mp4'
-);
-statusEl.innerText = "合体完了！保存ファイルを出力中...";
-const mergedData = ffmpeg.FS('readFile', 'output.mp4');
-const safeTitle = videoTitle.replace(/[\/:*?"<>|]/g, "_");
-const blob = new Blob([mergedData.buffer], { type: 'video/mp4' });
-const downloadUrl = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = downloadUrl;
-a.download = ${safeTitle}.mp4;
-document.body.appendChild(a);
-a.click();
-document.body.removeChild(a);
-ffmpeg.FS('unlink', 'output.mp4');
-statusEl.innerText = "🎉 結合完了！「${safeTitle}.mp4」がダウンロードされました。";
-} catch (error) {
-console.error(error);
-statusEl.innerText = "合体処理中にエラーが発生しました。コンソールを確認してください。";
-} finally {
-mergeBtnEl.disabled = false;
-updateMergeButtonStatus();
-}
-}
-document.getElementById("startBtn").addEventListener("click", () => {
-main(document.getElementById("youtubeUrlInput").value.trim());
-});
-document.getElementById("autoMergeBtn").addEventListener("click", startMerging);
-  </script>
+      if (!data1) {
+        statusEl.innerText = "エラー: manifest_urls が見つかりません。";
+        return;
+      }
+
+      videoTitle = data.title || "youtube_video";
+
+      b("動画データを受信しました");
+      b(data.channel);
+      b(data.description);
+      b(formatDateWithSlash(inputD));   
+      b(formatDateWithZero(inputD));    
+      b(formatDateWithoutZero(inputD)); 
+      b(data1);
+
+      const finalFormatMap = await convertUrlsWithJsonFile(data1);
+
+      b("--- フォーマット名マップ (itag.json使用) ---");
+      b(finalFormatMap);
+
+      document.getElementById("resTitle").innerText = videoTitle;
+      document.getElementById("resChannel").innerText = data.channel || "なし";
+      document.getElementById("resDescription").innerText = data.description || "なし";
+      
+      document.getElementById("resDates").innerText = 
+        `パターン1: ${formatDateWithSlash(inputD)}\n` +
+        `パターン2: ${formatDateWithZero(inputD)}\n` +
+        `パターン3: ${formatDateWithoutZero(inputD)}`;
+
+      const urlListContainer = document.getElementById("resUrls");
+      urlListContainer.innerHTML = "";
+
+      Object.keys(finalFormatMap).forEach(formatName => {
+        const item = finalFormatMap[formatName];
+        const btn = document.createElement("button");
+        btn.className = "url-link";
+        btn.style.display = "block";
+        btn.style.width = "100%";
+        btn.style.marginBottom = "5px";
+        btn.style.textAlign = "left";
+        btn.innerText = `【${formatName}】を合体用に選択`;
+
+        btn.addEventListener("click", () => {
+          if (item.content === "video") {
+            selectedVideoUrl = item.url;
+            b("映像が選択されました: " + formatName);
+          } else if (item.content === "audio") {
+            selectedAudioUrl = item.url;
+            b("音声が選択されました: " + formatName);
+          } else {
+            selectedVideoUrl = item.url;
+            b("不明なフォーマット(映像として選択): " + formatName);
+          }
+          updateMergeButtonStatus();
+        });
+        urlListContainer.appendChild(btn);
+      });
+
+      statusEl.innerText = "";
+      resultSecEl.style.display = "block";
+      mergeBtnEl.style.display = "block";
+
+    } catch (error) {
+      statusEl.innerText = "解析に失敗しました。";
+      console.error(error);
+    }
+  }
+
+  function updateMergeButtonStatus() {
+    const mergeBtnEl = document.getElementById("autoMergeBtn");
+    if (selectedVideoUrl && selectedAudioUrl) {
+      mergeBtnEl.innerText = "🎬 準備完了！この組み合わせでストリーミング再生する";
+      mergeBtnEl.disabled = false;
+      mergeBtnEl.style.backgroundColor = "#28a745";
+    } else if (selectedVideoUrl) {
+      mergeBtnEl.innerText = "🎵 次は音声をリストから選んでクリックしてください";
+      mergeBtnEl.disabled = true;
+      mergeBtnEl.style.backgroundColor = "#6c757d";
+    } else if (selectedAudioUrl) {
+      mergeBtnEl.innerText = "📹 次は映像をリストから選んでクリックしてください";
+      mergeBtnEl.disabled = true;
+      mergeBtnEl.style.backgroundColor = "#6c757d";
+    }
+  }
+
+  async function startMerging() {
+    const statusEl = document.getElementById("statusMessage");
+    try {
+      statusEl.innerText = "再生プレイヤーを準備中...";
+      await loadHlsLibrary();
+
+      // 自前Vercelプロキシを適用してCORSを完全回避
+      var proxyBaseUrl = "https://" + "xeroxapp032" + ".vercel" + ".app" + "/proxy?u=";
+      const proxiedVideoUrl = proxyBaseUrl + encodeURIComponent(selectedVideoUrl);
+      const proxiedAudioUrl = proxyBaseUrl + encodeURIComponent(selectedAudioUrl);
+
+      // マスタープレイリストの構造化
+      const masterM3u8Text = `#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="sync-audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="${proxiedAudioUrl}"\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,AUDIO="sync-audio"\n${proxiedVideoUrl}`;
+
+      const blob = new Blob([masterM3u8Text], { type: "application/x-mpegURL" });
+      const combinedPlayableUrl = URL.createObjectURL(blob);
+      b("生成された再生用マスターM3U8 Blob URL: " + combinedPlayableUrl);
+
+      let videoEl = document.getElementById("videoPlayer");
+      if (videoEl) {
+        videoEl.style.display = "block"; 
+      }
+
+      if (hlsInstance) {
+        hlsInstance.destroy();
+      }
+
+      if (Hls.isSupported()) {
+        hlsInstance = new Hls();
+        hlsInstance.loadSource(combinedPlayableUrl);
+        hlsInstance.attachMedia(videoEl);
+        hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          videoEl.play();
+        });
+      } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+        videoEl.src = combinedPlayableUrl;
+        videoEl.addEventListener('loadedmetadata', () => {
+          videoEl.play();
+        });
+      }
+      statusEl.innerText = "🎉 ページ内での合体ストリーミング再生を開始しました！";
+
+    } catch (error) {
+      console.error(error);
+      statusEl.innerText = "プレイリストの生成または再生に失敗しました。";
+    }
+  }
+
+  document.getElementById("startBtn").addEventListener("click", () => {
+    main(document.getElementById("youtubeUrlInput").value.trim());
+  });
+  document.getElementById("autoMergeBtn").addEventListener("click", startMerging);
+</script>
+
+
 </body>
 </html>
-
-

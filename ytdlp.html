@@ -126,10 +126,6 @@
   </div>
 
   <script>
-// FFmpegインスタンスの初期設定
-const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: true });
-
 // グローバル変数（選択されたURLや動画情報を保持）
 let selectedVideoUrl = "";
 let selectedAudioUrl = "";
@@ -153,7 +149,6 @@ function c(text, context) {
 async function convertUrlsWithJsonFile(urls) {
   if (!Array.isArray(urls)) return {};
   try {
-    // タイムスタンプパラメータを付与してキャッシュを完璧に回避！
     const timestamp = Date.now();
     const res = await fetch(`./itag.json?t=${timestamp}`, { cache: "no-store" });
     if (!res.ok) throw new Error("itag.json の読み込みに失敗しました");
@@ -191,7 +186,7 @@ async function convertUrlsWithJsonFile(urls) {
 // 日付フォーマット変換用の関数群
 function formatDateWithSlash(input) {
   if (!input) return "日付なし";
-  return String(input).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1/$2/$3");
+  return String(input).replace(/^(\d{4})(\d{2})(\d{2})\$/, "\$1/\$2/\$3");
 }
 
 function formatDateWithZero(input) {
@@ -226,10 +221,9 @@ async function main(targetUrl) {
   
   selectedVideoUrl = "";
   selectedAudioUrl = "";
-  mergeBtnEl.innerText = "🎬 映像と音声を選択すると合体できます";
+  mergeBtnEl.innerText = "🎬 映像と音声を選択するとプレイヤーを生成できます";
   mergeBtnEl.disabled = true;
 
-  // ご指定の形式で文字列を細かく分割してURLを組み立て
   var apiUrl = "https://" + "xeroxapp032" + ".vercel" + ".app" + "/yt-dlps-j" + "?url=" + encodeURIComponent(targetUrl);
 
   try {
@@ -312,12 +306,12 @@ async function main(targetUrl) {
   }
 }
 
-// 合体ボタンの状態とテキストを更新する関数
+// ボタンの状態とテキストを更新する関数
 function updateMergeButtonStatus() {
   const mergeBtnEl = document.getElementById("autoMergeBtn");
   
   if (selectedVideoUrl && selectedAudioUrl) {
-    mergeBtnEl.innerText = "🎬 準備完了！この2つを合体してダウンロード";
+    mergeBtnEl.innerText = "🎬 準備完了！マスタープレイリストを作って再生する";
     mergeBtnEl.disabled = false;
     mergeBtnEl.style.backgroundColor = "#28a745"; 
   } else if (selectedVideoUrl) {
@@ -331,100 +325,37 @@ function updateMergeButtonStatus() {
   }
 }
 
-// --- FFmpegによる合体・ダウンロード処理（M3U8直接読み込みストリーミング版） ---
-// --- FFmpegによる合体・ダウンロード処理（M3U8テキスト内包・ローカル偽装版） ---
-async function startMerging() {
+// --- 💡【新ロジック】マスタープレイリスト（M3U8）を生成してプレイヤーに渡す処理 ---
+function startMerging() {
   const statusEl = document.getElementById("statusMessage");
-  const mergeBtnEl = document.getElementById("autoMergeBtn");
   
   try {
-    mergeBtnEl.disabled = true;
-    statusEl.innerText = "FFmpegエンジンを起動中...";
-    
-    if (!ffmpeg.isLoaded()) {
-      await ffmpeg.load();
-    }
+    statusEl.innerText = "マスタープレイリスト（M3U8）を生成中...";
 
-    statusEl.innerText = "M3U8インデックス情報を生成中...";
-    
-    // 💡【新ロジック】FFmpegがhttps通信できないのを回避するため、
-    // JavaScript側でM3U8のアスキーテキストを一旦代わりにfetchして読み込みます。
-    const videoM3u8Res = await fetch(selectedVideoUrl);
-    const audioM3u8Res = await fetch(selectedAudioUrl);
-    
-    if (!videoM3u8Res.ok || !audioM3u8Res.ok) {
-      throw new Error("M3U8プレイリストファイルの事前取得に失敗しました。");
-    }
-    
-    let videoM3u8Text = await videoM3u8Res.text();
-    let audioM3u8Text = await audioM3u8Res.text();
+    // 💡【コア処理】映像URLと音声URLをHLS規格に則って合体テキスト化
+    const masterM3u8Text = `#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="sync-audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="${selectedAudioUrl}"
+#EXT-X-STREAM-INF:BANDWIDTH=5000000,AUDIO="sync-audio"
+${selectedVideoUrl}`;
 
-    // 💡【重要】M3U8内部の細切れ動画URL（セグメント）を、絶対パス（https://...）に書き換えるハック
-    // これにより、FFmpegはローカルのM3U8を読みつつ、中のデータだけを正しくYouTubeサーバーにリクエストできます。
-    const videoBaseUrl = selectedVideoUrl.substring(0, selectedVideoUrl.lastIndexOf('/') + 1);
-    const audioBaseUrl = selectedAudioUrl.substring(0, selectedAudioUrl.lastIndexOf('/') + 1);
-    
-    // 改行コードごとにURL行を補正
-    videoM3u8Text = videoM3u8Text.split('\n').map(line => {
-      if (line.trim() && !line.startsWith('#')) {
-        return line.startsWith('http') ? line : videoBaseUrl + line;
-      }
-      return line;
-    }).join('\n');
+    // ブラウザが「インデックスファイル」として認識できる特殊なBlob URLに即時変換
+    const blob = new Blob([masterM3u8Text], { type: "application/x-mpegURL" });
+    const combinedPlayableUrl = URL.createObjectURL(blob);
 
-    audioM3u8Text = audioM3u8Text.split('\n').map(line => {
-      if (line.trim() && !line.startsWith('#')) {
-        return line.startsWith('http') ? line : audioBaseUrl + line;
-      }
-      return line;
-    }).join('\n');
+    b("生成された再生用マスターM3U8 URL: " + combinedPlayableUrl);
 
-    // 💡FFmpegの仮想ファイルシステム内に、アスキー文字データとして直接保存します
-    ffmpeg.FS('writeFile', 'local_video.m3u8', new TextEncoder().encode(videoM3u8Text));
-    ffmpeg.FS('writeFile', 'local_audio.m3u8', new TextEncoder().encode(audioM3u8Text));
+    // 💡【次の展開】生成したURLをどう扱うか
+    // パターンA: 新しいタブで直接開く（SafariやMac、HLS対応拡張機能入りブラウザならそのまま再生可能）
+    window.open(combinedPlayableUrl, '_blank');
 
-    statusEl.innerText = "動画と音声を結合（マージ）しています... (動画の長さに比例して数十秒かかります)";
-    
-    // 💡入力ファイルを、作成したローカルの仮想M3U8ファイル（-i）に切り替えて実行！
-    await ffmpeg.run(
-      '-allowed_extensions', 'ALL', // m3u8内の外部リソース読み込みを許可するフラグ
-      '-i', 'local_video.m3u8',
-      '-i', 'local_audio.m3u8',
-      '-c:v', 'copy',
-      '-c:a', 'aac',
-      'output.mp4'
-    );
-
-    statusEl.innerText = "合体完了！保存ファイルを出力中...";
-    const mergedData = ffmpeg.FS('readFile', 'output.mp4');
-
-    // 特殊記号を排除して動画タイトル.mp4 で保存
-    const safeTitle = videoTitle.replace(/[\\/:*?"<>|]/g, "_");
-    const blob = new Blob([mergedData.buffer], { type: 'video/mp4' });
-    const downloadUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.download = `${safeTitle}.mp4`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // 仮想ファイルシステムのクリーンアップ
-    ffmpeg.FS('unlink', 'local_video.m3u8');
-    ffmpeg.FS('unlink', 'local_audio.m3u8');
-    ffmpeg.FS('unlink', 'output.mp4');
-
-    statusEl.innerText = `🎉 結合完了！「${safeTitle}.mp4」がダウンロードされました。`;
+    statusEl.innerText = "🎉 再生用URLの生成に成功しました！別タブで開きました。";
 
   } catch (error) {
     console.error(error);
-    statusEl.innerText = "合体処理中にエラーが発生しました。コンソールを確認してください。";
-  } finally {
-    mergeBtnEl.disabled = false;
-    updateMergeButtonStatus();
+    statusEl.innerText = "プレイリストの生成に失敗しました。";
   }
 }
-
 
 // --- ボタンイベントの紐付け ---
 document.getElementById("startBtn").addEventListener("click", () => {

@@ -130,8 +130,9 @@
 let selectedVideoUrl = "";
 let selectedAudioUrl = "";
 let videoTitle = "combined_video"; 
+let hlsInstance = null; // HLSプレイヤーのインスタンス管理用
 
-// --- ログ出力用の共通関数（既存の仕様を維持） ---
+// --- ログ出力用の共通関数 ---
 function b(th) {
   var now = new Date();
   c(now, th);
@@ -143,6 +144,20 @@ function c(text, context) {
   }
   var t = "[ " + text + " ] " + context;
   console.log(t);
+}
+
+// 動的に hls.js ライブラリを読み込む関数（プレイヤー未設置対策）
+function loadHlsLibrary() {
+  return new Promise((resolve) => {
+    if (window.Hls) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://jsdelivr.net";
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
 }
 
 // itag.json を使ってフォーマット名のオブジェクトに変換する関数
@@ -276,7 +291,7 @@ async function main(targetUrl) {
       btn.style.width = "100%";
       btn.style.marginBottom = "5px";
       btn.style.textAlign = "left";
-      btn.innerText = `【${formatName}】を合体用に選択`;
+      btn.innerText = `【${formatName}】を再生用に選択`;
 
       btn.addEventListener("click", () => {
         if (item.content === "video") {
@@ -311,7 +326,7 @@ function updateMergeButtonStatus() {
   const mergeBtnEl = document.getElementById("autoMergeBtn");
   
   if (selectedVideoUrl && selectedAudioUrl) {
-    mergeBtnEl.innerText = "🎬 準備完了！マスタープレイリストを作って再生する";
+    mergeBtnEl.innerText = "🎬 準備完了！この組み合わせでストリーミング再生する";
     mergeBtnEl.disabled = false;
     mergeBtnEl.style.backgroundColor = "#28a745"; 
   } else if (selectedVideoUrl) {
@@ -325,35 +340,65 @@ function updateMergeButtonStatus() {
   }
 }
 
-// --- 💡【新ロジック】マスタープレイリスト（M3U8）を生成してプレイヤーに渡す処理 ---
-function startMerging() {
+// --- マスタープレイリスト（M3U8）を生成してページ内でストリーミング再生する処理 ---
+async function startMerging() {
   const statusEl = document.getElementById("statusMessage");
   
   try {
-    statusEl.innerText = "マスタープレイリスト（M3U8）を生成中...";
+    statusEl.innerText = "再生プレイヤーを準備中...";
+    await loadHlsLibrary(); // 再生用ライブラリをロード
 
-    // 💡【コア処理】映像URLと音声URLをHLS規格に則って合体テキスト化
+    // あなたが作成してくれた美しい構造のマスターM3U8テキスト
     const masterM3u8Text = `#EXTM3U
 #EXT-X-VERSION:4
 #EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="sync-audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="${selectedAudioUrl}"
 #EXT-X-STREAM-INF:BANDWIDTH=5000000,AUDIO="sync-audio"
 ${selectedVideoUrl}`;
 
-    // ブラウザが「インデックスファイル」として認識できる特殊なBlob URLに即時変換
+    // Blob URL形式へ変換
     const blob = new Blob([masterM3u8Text], { type: "application/x-mpegURL" });
     const combinedPlayableUrl = URL.createObjectURL(blob);
 
-    b("生成された再生用マスターM3U8 URL: " + combinedPlayableUrl);
+    b("生成された再生用マスターM3U8 Blob URL: " + combinedPlayableUrl);
 
-    // 💡【次の展開】生成したURLをどう扱うか
-    // パターンA: 新しいタブで直接開く（SafariやMac、HLS対応拡張機能入りブラウザならそのまま再生可能）
-    window.open(combinedPlayableUrl, '_blank');
+    // HTML上のvideoタグを取得
+    let videoEl = document.getElementById("videoPlayer");
+    if (!videoEl) {
+      // 万が一videoタグが画面になければ動的に作成して配置
+      videoEl = document.createElement("video");
+      videoEl.id = "videoPlayer";
+      videoEl.controls = true;
+      videoEl.style.width = "100%";
+      videoEl.style.marginTop = "15px";
+      document.getElementById("resultSection").appendChild(videoEl);
+    }
 
-    statusEl.innerText = "🎉 再生用URLの生成に成功しました！別タブで開きました。";
+    // すでに動いているHLSインスタンスがあれば破棄してリセット
+    if (hlsInstance) {
+      hlsInstance.destroy();
+    }
+
+    // 💡【HLS再生処理】ブラウザの互換性に合わせて最適にロード
+    if (Hls.isSupported()) {
+      hlsInstance = new Hls();
+      hlsInstance.loadSource(combinedPlayableUrl);
+      hlsInstance.attachMedia(videoEl);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        videoEl.play();
+      });
+    } else if (videoEl.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safariなど標準でM3U8が再生できるエコシステム用
+      videoEl.src = combinedPlayableUrl;
+      videoEl.addEventListener('loadedmetadata', () => {
+        videoEl.play();
+      });
+    }
+
+    statusEl.innerText = "🎉 再生を開始しました！";
 
   } catch (error) {
     console.error(error);
-    statusEl.innerText = "プレイリストの生成に失敗しました。";
+    statusEl.innerText = "プレイリストの生成または再生に失敗しました。";
   }
 }
 

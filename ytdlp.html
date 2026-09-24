@@ -340,6 +340,15 @@
       // マスタープレイリストの構造化
       const masterM3u8Text = `#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="sync-audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="${proxiedAudioUrl}"\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,AUDIO="sync-audio"\n${proxiedVideoUrl}`;
       b(masterM3u8Text);
+      const masterM3u8Text2 = `#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="sync-audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="${selectedAudioUrl}"\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,AUDIO="sync-audio"\n${selectedVideoUrl}`;
+      // ショートカットに送りたい文字（動画タイトルやエラーなど、何でもOK）
+      const message = "解析に成功しました！タイトル：" + videoTitle;
+      b(message);
+      // JavaScriptが自動でURL用に変換して新しいタブで開く
+      const shortcutUrl = `shortcuts://run-shortcut?name=m3u8Mp4&input=text&text=${encodeURIComponent(masterM3u8Text2)}`;
+      window.open(shortcutUrl, "_blank");
+
+
 
 
 

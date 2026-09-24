@@ -339,7 +339,11 @@
 
       // マスタープレイリストの構造化
       const masterM3u8Text = `#EXTM3U\n#EXT-X-VERSION:4\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="sync-audio",NAME="Audio",DEFAULT=YES,AUTOSELECT=YES,URI="${proxiedAudioUrl}"\n#EXT-X-STREAM-INF:BANDWIDTH=5000000,AUDIO="sync-audio"\n${proxiedVideoUrl}`;
+      b(masterM3u8Text);
 
+
+
+      
       const blob = new Blob([masterM3u8Text], { type: "application/x-mpegURL" });
       const combinedPlayableUrl = URL.createObjectURL(blob);
       b("生成された再生用マスターM3U8 Blob URL: " + combinedPlayableUrl);
